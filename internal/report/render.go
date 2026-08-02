@@ -64,6 +64,9 @@ func WriteMarkdown(r Report, path string) error {
 	fmt.Fprintf(&b, "- Out of Order: %d\n", r.TCP.OutOfOrder)
 	fmt.Fprintf(&b, "- Zero Window: %d\n", r.TCP.ZeroWindow)
 	fmt.Fprintf(&b, "- Reset: %d\n\n", r.TCP.Resets)
+	if r.RTT.Samples > 0 {
+		fmt.Fprintf(&b, "- RTT: avg %.1f мс / min %.1f мс / max %.1f мс (%d замеров)\n\n", r.RTT.AvgMs, r.RTT.MinMs, r.RTT.MaxMs, r.RTT.Samples)
+	}
 
 	fmt.Fprintf(&b, "## DNS\n\n")
 	fmt.Fprintf(&b, "- Запросы/Ответы: %d/%d\n", r.DNS.Queries, r.DNS.Responses)
@@ -103,6 +106,9 @@ func TerminalSummary(r Report) string {
 	fmt.Fprintf(&b, "\nПротоколы\n")
 	fmt.Fprintf(&b, "  TCP %d · UDP %d · ICMP %d · DNS %d · TLS %d · HTTP %d\n",
 		r.Protocols.TCP, r.Protocols.UDP, r.Protocols.ICMP, r.Protocols.DNS, r.Protocols.TLS, r.Protocols.HTTP)
+	if r.RTT.Samples > 0 {
+		fmt.Fprintf(&b, "\nRTT: avg %.1f мс · min %.1f мс · max %.1f мс (%d замеров)\n", r.RTT.AvgMs, r.RTT.MinMs, r.RTT.MaxMs, r.RTT.Samples)
+	}
 
 	fmt.Fprintf(&b, "\nNetwork Score: %d/100\n", r.Health.Total)
 	for _, comp := range []string{"network", "tcp", "dns"} {

@@ -107,6 +107,7 @@
       <tr><th>Out of Order</th><td>{{.TCP.OutOfOrder}}</td></tr>
       <tr><th>Zero Window</th><td>{{.TCP.ZeroWindow}}</td></tr>
       <tr><th>Reset (RST)</th><td>{{.TCP.Resets}}</td></tr>
+      <tr><th>RTT (avg / min / max)</th><td>{{if .RTT.Samples}}{{printf "%.1f" .RTT.AvgMs}} / {{printf "%.1f" .RTT.MinMs}} / {{printf "%.1f" .RTT.MaxMs}} мс ({{.RTT.Samples}} замеров){{else}}—{{end}}</td></tr>
     </table>
   </section>
 

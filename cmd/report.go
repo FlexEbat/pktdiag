@@ -3,6 +3,7 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"pktdiag/internal/analyze"
@@ -42,6 +43,9 @@ func runReport(args []string) error {
 }
 
 func writeReportFiles(rep report.Report, outDir string, formats map[string]bool) error {
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		return fmt.Errorf("не удалось создать каталог %s: %w", outDir, err)
+	}
 	var written []string
 	if formats["json"] {
 		p := filepath.Join(outDir, "report.json")
