@@ -39,7 +39,13 @@ type SystemInfo struct {
 	Interfaces  []Interface `json:"interfaces"`
 	DNSServers  []string    `json:"dns_servers,omitempty"`
 	RouteRaw    []string    `json:"routes_raw,omitempty"`
-	Notes       []string    `json:"notes,omitempty"` // что не удалось собрать и почему
+
+	IPTablesRules   []string          `json:"iptables_rules,omitempty"`
+	NFTablesRuleset []string          `json:"nftables_ruleset,omitempty"`
+	ConntrackSample []string          `json:"conntrack_sample,omitempty"` // усечённая выборка, не полный дамп
+	Sysctl          map[string]string `json:"sysctl,omitempty"`
+
+	Notes []string `json:"notes,omitempty"` // что не удалось собрать и почему
 }
 
 // Collect собирает информацию о текущей системе, стараясь не падать
@@ -92,6 +98,30 @@ func Collect() SystemInfo {
 		info.RouteRaw = lines
 	} else {
 		info.Notes = append(info.Notes, "не удалось прочитать таблицу маршрутизации: "+err.Error())
+	}
+
+	if lines, err := iptablesRules(); err == nil {
+		info.IPTablesRules = lines
+	} else {
+		info.Notes = append(info.Notes, "iptables недоступен: "+err.Error())
+	}
+
+	if lines, err := nftablesRuleset(); err == nil {
+		info.NFTablesRuleset = lines
+	} else {
+		info.Notes = append(info.Notes, "nft недоступен: "+err.Error())
+	}
+
+	if lines, err := conntrackSample(200); err == nil {
+		info.ConntrackSample = lines
+	} else {
+		info.Notes = append(info.Notes, "conntrack недоступен: "+err.Error())
+	}
+
+	if kv, err := sysctlSample(); err == nil {
+		info.Sysctl = kv
+	} else {
+		info.Notes = append(info.Notes, "sysctl недоступен: "+err.Error())
 	}
 
 	return info
@@ -223,6 +253,119 @@ func routesRaw() ([]string, error) {
 		}
 	}
 	return lines, nil
+}
+
+// iptablesRules возвращает правила iptables в виде списка строк (`iptables -S`,
+// все таблицы: filter, nat, mangle). Требует root — при отсутствии прав или
+// самой утилиты просто возвращает ошибку, которая уходит в Notes.
+func iptablesRules() ([]string, error) {
+	if _, err := exec.LookPath("iptables"); err != nil {
+		return nil, err
+	}
+	var all []string
+	for _, table := range []string{"filter", "nat", "mangle"} {
+		out, err := exec.Command("iptables", "-t", table, "-S").Output()
+		if err != nil {
+			continue // таблица может быть недоступна (например, nat без conntrack) — не фатально
+		}
+		lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+		for _, l := range lines {
+			if strings.TrimSpace(l) != "" {
+				all = append(all, fmt.Sprintf("[%s] %s", table, l))
+			}
+		}
+	}
+	return all, nil
+}
+
+// nftablesRuleset возвращает `nft list ruleset` построчно.
+func nftablesRuleset() ([]string, error) {
+	if _, err := exec.LookPath("nft"); err != nil {
+		return nil, err
+	}
+	out, err := exec.Command("nft", "list", "ruleset").Output()
+	if err != nil {
+		return nil, err
+	}
+	var lines []string
+	for _, l := range strings.Split(string(out), "\n") {
+		if strings.TrimSpace(l) != "" {
+			lines = append(lines, l)
+		}
+	}
+	return lines, nil
+}
+
+// conntrackSample возвращает не более limit строк текущей таблицы соединений
+// conntrack -L. Таблица может быть очень большой на нагруженном хосте,
+// поэтому в отчёт кладём только выборку, а не полный дамп.
+func conntrackSample(limit int) ([]string, error) {
+	if _, err := exec.LookPath("conntrack"); err != nil {
+		return nil, err
+	}
+	out, err := exec.Command("conntrack", "-L").CombinedOutput()
+	if err != nil {
+		// conntrack -L часто пишет сводку в stderr с ненулевым кодом даже при успехе —
+		// проверяем, есть ли вообще вывод, прежде чем считать это ошибкой.
+		if len(out) == 0 {
+			return nil, err
+		}
+	}
+	var lines []string
+	for _, l := range strings.Split(string(out), "\n") {
+		l = strings.TrimSpace(l)
+		if l == "" || strings.HasPrefix(l, "conntrack v") {
+			continue
+		}
+		lines = append(lines, l)
+		if len(lines) >= limit {
+			break
+		}
+	}
+	return lines, nil
+}
+
+// sysctlKeys — сетевые параметры ядра, наиболее релевантные для диагностики
+// (буферы, congestion control, обработка ICMP/фрагментации).
+var sysctlKeys = []string{
+	"net.core.rmem_max",
+	"net.core.wmem_max",
+	"net.core.rmem_default",
+	"net.core.wmem_default",
+	"net.core.netdev_max_backlog",
+	"net.ipv4.tcp_congestion_control",
+	"net.ipv4.tcp_rmem",
+	"net.ipv4.tcp_wmem",
+	"net.ipv4.tcp_retries2",
+	"net.ipv4.tcp_syn_retries",
+	"net.ipv4.tcp_fin_timeout",
+	"net.ipv4.ip_forward",
+	"net.ipv4.icmp_echo_ignore_all",
+	"net.ipv6.conf.all.disable_ipv6",
+}
+
+func sysctlSample() (map[string]string, error) {
+	if _, err := exec.LookPath("sysctl"); err != nil {
+		return nil, err
+	}
+	args := append([]string{}, sysctlKeys...)
+	out, err := exec.Command("sysctl", args...).Output()
+	if err != nil && len(out) == 0 {
+		return nil, err
+	}
+	result := make(map[string]string)
+	for _, l := range strings.Split(string(out), "\n") {
+		l = strings.TrimSpace(l)
+		if l == "" {
+			continue
+		}
+		parts := strings.SplitN(l, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		result[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+	}
+	return result, nil
 }
 
 // AvailableInterfaces возвращает только имена интерфейсов — используется
