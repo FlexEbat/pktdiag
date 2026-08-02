@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -32,6 +33,33 @@ func WriteHTML(r Report, path string) error {
 	defer f.Close()
 	if err := htmlTmpl.Execute(f, r); err != nil {
 		return fmt.Errorf("render html: %w", err)
+	}
+	return nil
+}
+
+// WritePDF рендерит отчёт в PDF через wkhtmltopdf (UC-17 export pdf).
+// Сначала строит промежуточный HTML во временный файл (или использует
+// уже готовый htmlPath, если он не пуст), затем конвертирует его в PDF.
+func WritePDF(r Report, pdfPath string) error {
+	if _, err := exec.LookPath("wkhtmltopdf"); err != nil {
+		return fmt.Errorf("wkhtmltopdf не найден в PATH — установите пакет wkhtmltopdf для экспорта в PDF")
+	}
+
+	tmpHTML, err := os.CreateTemp("", "pktdiag-report-*.html")
+	if err != nil {
+		return fmt.Errorf("создание временного html: %w", err)
+	}
+	defer os.Remove(tmpHTML.Name())
+	defer tmpHTML.Close()
+
+	if err := htmlTmpl.Execute(tmpHTML, r); err != nil {
+		return fmt.Errorf("render html для pdf: %w", err)
+	}
+	tmpHTML.Close()
+
+	cmd := exec.Command("wkhtmltopdf", "--quiet", tmpHTML.Name(), pdfPath)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("wkhtmltopdf: %w\n%s", err, string(out))
 	}
 	return nil
 }

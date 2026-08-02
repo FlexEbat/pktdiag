@@ -148,7 +148,7 @@ func reorderArgsForFlags(fs *flag.FlagSet, args []string) []string {
 	return append(flagArgs, positional...)
 }
 
-// parseFormats разбирает "html,json,md" в множество форматов, по умолчанию html+json.
+// parseFormats разбирает "html,json,md,pdf" в множество форматов, по умолчанию html+json.
 func parseFormats(s string) map[string]bool {
 	out := map[string]bool{}
 	if strings.TrimSpace(s) == "" {

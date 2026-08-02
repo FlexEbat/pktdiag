@@ -51,6 +51,7 @@ func Run() Report {
 	r.Checks = append(r.Checks, binCheck("tshark", true))
 	r.Checks = append(r.Checks, binCheck("capinfos", false))
 	r.Checks = append(r.Checks, binCheck("zstd", false))
+	r.Checks = append(r.Checks, binCheck("wkhtmltopdf", false))
 
 	r.Checks = append(r.Checks, permissionCheck())
 	r.Checks = append(r.Checks, diskSpaceCheck("."))

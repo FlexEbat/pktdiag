@@ -22,7 +22,7 @@ func runCapture(args []string) error {
 	filter := fs.String("filter", "", `BPF-фильтр tcpdump, например "tcp port 443"`)
 	duration := fs.String("duration", "30s", `длительность захвата, например "30s", "5m"; "0" — до Ctrl+C`)
 	output := fs.String("output", "", "каталог для результатов (по умолчанию — ./pktdiag-capture-<timestamp>)")
-	format := fs.String("format", "html,json", "форматы отчёта через запятую: html,json,md")
+	format := fs.String("format", "html,json", "форматы отчёта через запятую: html,json,md,pdf")
 	noArchive := fs.Bool("no-archive", false, "не собирать финальный tar.zst архив")
 	ring := fs.Int("ring", 0, "включить кольцевой буфер: количество файлов (0 — выключено)")
 	ringSize := fs.Int("ring-size", 100, "размер одного файла кольцевого буфера, МБ")

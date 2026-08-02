@@ -12,13 +12,13 @@ import (
 
 func runReport(args []string) error {
 	fs := flag.NewFlagSet("report", flag.ContinueOnError)
-	format := fs.String("format", "html,json", "форматы отчёта через запятую: html,json,md")
+	format := fs.String("format", "html,json", "форматы отчёта через запятую: html,json,md,pdf")
 	output := fs.String("output", "", "каталог для сохранения отчёта (по умолчанию — рядом с источником)")
 	if err := fs.Parse(reorderArgsForFlags(fs, args)); err != nil {
 		return err
 	}
 	if fs.NArg() < 1 {
-		return fmt.Errorf("использование: pktdiag report <pcap|каталог|bundle.tar.zst> [--format html,json,md] [--output dir]")
+		return fmt.Errorf("использование: pktdiag report <pcap|каталог|bundle.tar.zst> [--format html,json,md,pdf] [--output dir]")
 	}
 	src := fs.Arg(0)
 
@@ -64,6 +64,13 @@ func writeReportFiles(rep report.Report, outDir string, formats map[string]bool)
 	if formats["md"] {
 		p := filepath.Join(outDir, "report.md")
 		if err := report.WriteMarkdown(rep, p); err != nil {
+			return err
+		}
+		written = append(written, p)
+	}
+	if formats["pdf"] {
+		p := filepath.Join(outDir, "report.pdf")
+		if err := report.WritePDF(rep, p); err != nil {
 			return err
 		}
 		written = append(written, p)
