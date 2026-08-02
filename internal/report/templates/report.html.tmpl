@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>pktdiag — отчёт {{.Meta.Source}}</title>
+<style>
+  :root {
+    --bg: #0e1117; --card: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e;
+    --ok: #3fb950; --warn: #d29922; --crit: #f85149; --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    margin: 0; padding: 32px; line-height: 1.5;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 28px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .card .value { font-size: 24px; font-weight: 600; margin-top: 4px; }
+  .score { text-align: center; }
+  .score .value { font-size: 40px; }
+  section { margin-bottom: 32px; }
+  h2 { font-size: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge.ok { background: rgba(63,185,80,.15); color: var(--ok); }
+  .badge.warning { background: rgba(210,153,34,.15); color: var(--warn); }
+  .badge.critical { background: rgba(248,81,73,.15); color: var(--crit); }
+  .anomaly { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--warn); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; }
+  .anomaly.critical { border-left-color: var(--crit); }
+  .anomaly .title { font-weight: 600; margin-bottom: 4px; }
+  .anomaly .value { color: var(--muted); font-size: 13px; }
+  .empty { color: var(--muted); font-style: italic; }
+  code { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>pktdiag — отчёт о захвате</h1>
+  <div class="sub">
+    Источник: <code>{{.Meta.Source}}</code> ·
+    Сформирован: {{.Meta.GeneratedAt.Format "2006-01-02 15:04:05"}} ·
+    pktdiag {{.Meta.PktdiagVersion}}
+  </div>
+
+  <div class="grid">
+    <div class="card score">
+      <div class="label">Health Score</div>
+      <div class="value">{{.Health.Total}}/100</div>
+    </div>
+    <div class="card">
+      <div class="label">Пакеты</div>
+      <div class="value">{{.Summary.Packets}}</div>
+    </div>
+    <div class="card">
+      <div class="label">Длительность</div>
+      <div class="value">{{printf "%.1f" .Summary.DurationSec}}s</div>
+    </div>
+    <div class="card">
+      <div class="label">Avg PPS</div>
+      <div class="value">{{printf "%.0f" .Summary.AvgPPS}}</div>
+    </div>
+    {{if .Capture}}
+    <div class="card">
+      <div class="label">Dropped</div>
+      <div class="value">{{.Capture.PacketsDropped}}</div>
+    </div>
+    {{end}}
+  </div>
+
+  {{if .Capture}}
+  <section>
+    <h2>Параметры захвата</h2>
+    <table>
+      <tr><th>Интерфейс</th><td>{{.Capture.Interface}}</td></tr>
+      <tr><th>Фильтр</th><td><code>{{if .Capture.Filter}}{{.Capture.Filter}}{{else}}—{{end}}</code></td></tr>
+      <tr><th>Запрошенная длительность</th><td>{{.Capture.DurationRequested}}</td></tr>
+      <tr><th>Пакетов принято фильтром</th><td>{{.Capture.PacketsReceived}}</td></tr>
+      <tr><th>Пакетов отброшено ядром</th><td>{{.Capture.PacketsDropped}}</td></tr>
+    </table>
+  </section>
+  {{end}}
+
+  <section>
+    <h2>Протоколы</h2>
+    <table>
+      <tr><th>TCP</th><th>UDP</th><th>ICMP</th><th>DNS</th><th>TLS</th><th>HTTP</th></tr>
+      <tr>
+        <td>{{.Protocols.TCP}}</td><td>{{.Protocols.UDP}}</td><td>{{.Protocols.ICMP}}</td>
+        <td>{{.Protocols.DNS}}</td><td>{{.Protocols.TLS}}</td><td>{{.Protocols.HTTP}}</td>
+      </tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>TCP</h2>
+    <table>
+      <tr><th>Retransmission</th><td>{{.TCP.Retransmissions}} ({{printf "%.1f" .TCP.RetransmissionPct}}%)</td></tr>
+      <tr><th>Duplicate ACK</th><td>{{.TCP.DuplicateAcks}}</td></tr>
+      <tr><th>Out of Order</th><td>{{.TCP.OutOfOrder}}</td></tr>
+      <tr><th>Zero Window</th><td>{{.TCP.ZeroWindow}}</td></tr>
+      <tr><th>Reset (RST)</th><td>{{.TCP.Resets}}</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>DNS</h2>
+    <table>
+      <tr><th>Запросы / Ответы</th><td>{{.DNS.Queries}} / {{.DNS.Responses}}</td></tr>
+      <tr><th>Средний ответ</th><td>{{printf "%.1f" .DNS.AvgResponseMs}} мс</td></tr>
+      <tr><th>Медленные ответы (&gt;200мс)</th><td>{{.DNS.SlowResponses}}</td></tr>
+      <tr><th>Вероятные таймауты</th><td>{{.DNS.LikelyTimeouts}}</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Аномалии</h2>
+    {{if .Anomalies}}
+      {{range .Anomalies}}
+      <div class="anomaly {{.Severity}}">
+        <div class="title">
+          <span class="badge {{.Severity}}">{{.Severity}}</span>
+          {{.Title}} — {{.Value}}
+        </div>
+        <div class="value">{{.Message}}</div>
+      </div>
+      {{end}}
+    {{else}}
+      <p class="empty">Аномалий не обнаружено.</p>
+    {{end}}
+  </section>
+
+  {{if .System}}
+  <section>
+    <h2>Система</h2>
+    <table>
+      <tr><th>Hostname</th><td>{{.System.Hostname}}</td></tr>
+      <tr><th>Kernel</th><td>{{.System.Kernel}}</td></tr>
+      <tr><th>CPU</th><td>{{.System.CPUModel}} ({{.System.CPUCount}} ядер)</td></tr>
+      <tr><th>RAM</th><td>{{.System.MemTotalKB}} KB</td></tr>
+      <tr><th>DNS-серверы</th><td>{{range .System.DNSServers}}{{.}} {{end}}</td></tr>
+    </table>
+  </section>
+  {{end}}
+
+  <section>
+    <p class="empty">Сгенерировано pktdiag {{.Meta.PktdiagVersion}}. Для объяснения любой метрики: <code>pktdiag explain &lt;термин&gt;</code></p>
+  </section>
+</div>
+</body>
+</html>
