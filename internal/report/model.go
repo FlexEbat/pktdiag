@@ -46,6 +46,14 @@ type Protocols struct {
 	HTTP int `json:"http"`
 }
 
+// RTTStats — метрики задержки на основе TCP ACK RTT.
+type RTTStats struct {
+	Samples int     `json:"samples"`
+	AvgMs   float64 `json:"avg_ms"`
+	MinMs   float64 `json:"min_ms"`
+	MaxMs   float64 `json:"max_ms"`
+}
+
 // TCPStats — метрики качества TCP-потоков.
 type TCPStats struct {
 	Retransmissions   int     `json:"retransmissions"`
@@ -87,6 +95,7 @@ type Report struct {
 	Summary   Summary             `json:"summary"`
 	Protocols Protocols           `json:"protocols"`
 	TCP       TCPStats            `json:"tcp"`
+	RTT       RTTStats            `json:"rtt"`
 	DNS       DNSStats            `json:"dns"`
 	Anomalies []Anomaly           `json:"anomalies"`
 	Health    HealthScore         `json:"health_score"`

@@ -81,6 +81,30 @@ func fieldValues(pcapPath, filter, field string) ([]float64, error) {
 	return values, nil
 }
 
+// runTsharkFields выполняет tshark -Y filter -T fields -e f1 -e f2 ...
+// и возвращает построчно значения полей (табуляция — разделитель по умолчанию).
+func runTsharkFields(pcapPath, filter string, fields ...string) ([][]string, error) {
+	args := []string{"-r", pcapPath, "-Y", filter, "-T", "fields"}
+	for _, f := range fields {
+		args = append(args, "-e", f)
+	}
+	cmd := exec.Command("tshark", args...)
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("tshark -Y %q: %w", filter, err)
+	}
+	var rows [][]string
+	sc := bufio.NewScanner(strings.NewReader(string(out)))
+	for sc.Scan() {
+		line := sc.Text()
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		rows = append(rows, strings.Split(line, "\t"))
+	}
+	return rows, nil
+}
+
 func avg(values []float64) float64 {
 	if len(values) == 0 {
 		return 0

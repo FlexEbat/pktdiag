@@ -45,6 +45,12 @@ func Build(pcapPath string, capture *report.CaptureInfo) (report.Report, error) 
 	}
 	rep.DNS = dns
 
+	rtt, err := countRTT(pcapPath)
+	if err != nil {
+		return rep, err
+	}
+	rep.RTT = rtt
+
 	rep.Summary = report.Summary{
 		Packets:     ci.Packets,
 		DurationSec: ci.DurationSec,
@@ -133,6 +139,33 @@ func countDNS(pcapPath string, dnsTotal int) (report.DNSStats, error) {
 	return d, nil
 }
 
+func countRTT(pcapPath string) (report.RTTStats, error) {
+	var r report.RTTStats
+	values, err := fieldValues(pcapPath, "tcp.analysis.ack_rtt", "tcp.analysis.ack_rtt")
+	if err != nil {
+		return r, err
+	}
+	if len(values) == 0 {
+		return r, nil
+	}
+	r.Samples = len(values)
+	r.MinMs = values[0] * 1000
+	r.MaxMs = values[0] * 1000
+	var sum float64
+	for _, v := range values {
+		ms := v * 1000
+		sum += ms
+		if ms < r.MinMs {
+			r.MinMs = ms
+		}
+		if ms > r.MaxMs {
+			r.MaxMs = ms
+		}
+	}
+	r.AvgMs = sum / float64(len(values))
+	return r, nil
+}
+
 // detectAnomalies применяет пороги из Explain Engine (см. data/explain.json)
 // и формирует список замечаний для отчёта/TUI.
 func detectAnomalies(r report.Report) []report.Anomaly {
@@ -204,6 +237,19 @@ func detectAnomalies(r report.Report) []report.Anomaly {
 			fmt.Sprintf("Средний ответ DNS %.0f мс", r.DNS.AvgResponseMs)))
 	}
 
+	if r.RTT.Samples > 0 {
+		switch {
+		case r.RTT.AvgMs > 500:
+			out = append(out, anomaly("rtt", "critical", "Высокий RTT",
+				fmt.Sprintf("%.0f мс", r.RTT.AvgMs),
+				fmt.Sprintf("Средний RTT %.0f мс (по %d замерам) — сильно выше типичного", r.RTT.AvgMs, r.RTT.Samples)))
+		case r.RTT.AvgMs > 200:
+			out = append(out, anomaly("rtt", "warning", "Высокий RTT",
+				fmt.Sprintf("%.0f мс", r.RTT.AvgMs),
+				fmt.Sprintf("Средний RTT %.0f мс (по %d замерам)", r.RTT.AvgMs, r.RTT.Samples)))
+		}
+	}
+
 	if r.Capture != nil && r.Capture.PacketsDropped > 0 {
 		out = append(out, anomaly("packets_dropped", "warning", "Packets Dropped",
 			fmt.Sprintf("%d", r.Capture.PacketsDropped),
@@ -236,7 +282,7 @@ func healthScore(r report.Report) report.HealthScore {
 		switch a.ID {
 		case "retransmission", "duplicate_ack", "out_of_order":
 			penalize("tcp", a.Severity)
-		case "zero_window", "rst":
+		case "zero_window", "rst", "rtt":
 			penalize("network", a.Severity)
 		case "dns_timeout", "dns_slow":
 			penalize("dns", a.Severity)
