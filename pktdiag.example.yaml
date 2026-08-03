@@ -1,0 +1,23 @@
+# Пример конфига для `pktdiag capture`.
+# Используется автоматически, если лежит в текущем каталоге как
+# ./pktdiag.yaml, либо явно: `pktdiag capture --config path/to/this.yaml`.
+#
+# Флаги командной строки всегда имеют приоритет над конфигом:
+# `pktdiag capture --duration 10s` переопределит capture.duration отсюда.
+#
+# Поддерживается только простой плоский формат "секция -> ключ: значение"
+# (см. internal/yamlcfg/yamlcfg.go) — без списков и вложенности глубже
+# одного уровня.
+
+capture:
+  iface: eth0
+  filter: "tcp port 443"
+  duration: 60s
+  output: ""       # пусто — автоматическое имя pktdiag-capture-<timestamp>
+  ring: 0           # 0 — кольцевой буфер выключен
+  ring_size: 100    # МБ на файл кольца, если ring > 0
+  snaplen: 0        # 0 — без ограничения (-s0)
+
+report:
+  format: html,json # можно добавить md,pdf
+  archive: true      # false — не собирать tar.zst

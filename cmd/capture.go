@@ -14,19 +14,35 @@ import (
 	"pktdiag/internal/doctorx"
 	"pktdiag/internal/report"
 	"pktdiag/internal/sysinfo"
+	"pktdiag/internal/yamlcfg"
 )
 
 func runCapture(args []string) error {
+	// Конфиг грузим до определения флагов, чтобы его значения стали
+	// дефолтами — тогда явные флаги командной строки по-прежнему их
+	// переопределяют (см. pktdiag.example.yaml).
+	cfgPath := extractConfigPath(args)
+	var cfg yamlcfg.Config
+	if cfgPath != "" {
+		loaded, err := yamlcfg.Load(cfgPath)
+		if err != nil {
+			return fmt.Errorf("не удалось прочитать конфиг %s: %w", cfgPath, err)
+		}
+		cfg = loaded
+		fmt.Printf("Конфиг: %s\n", cfgPath)
+	}
+
 	fs := flag.NewFlagSet("capture", flag.ContinueOnError)
-	iface := fs.String("iface", "", "сетевой интерфейс (по умолчанию — автовыбор, не lo)")
-	filter := fs.String("filter", "", `BPF-фильтр tcpdump, например "tcp port 443"`)
-	duration := fs.String("duration", "30s", `длительность захвата, например "30s", "5m"; "0" — до Ctrl+C`)
-	output := fs.String("output", "", "каталог для результатов (по умолчанию — ./pktdiag-capture-<timestamp>)")
-	format := fs.String("format", "html,json", "форматы отчёта через запятую: html,json,md,pdf")
-	noArchive := fs.Bool("no-archive", false, "не собирать финальный tar.zst архив")
-	ring := fs.Int("ring", 0, "включить кольцевой буфер: количество файлов (0 — выключено)")
-	ringSize := fs.Int("ring-size", 100, "размер одного файла кольцевого буфера, МБ")
-	snaplen := fs.Int("snaplen", 0, "snapshot length tcpdump (0 — без ограничения, -s0)")
+	_ = fs.String("config", "", "путь к YAML-конфигу (по умолчанию — ./pktdiag.yaml, если существует)")
+	iface := fs.String("iface", cfg.Get("capture", "iface", ""), "сетевой интерфейс (по умолчанию — автовыбор, не lo)")
+	filter := fs.String("filter", cfg.Get("capture", "filter", ""), `BPF-фильтр tcpdump, например "tcp port 443"`)
+	duration := fs.String("duration", cfg.Get("capture", "duration", "30s"), `длительность захвата, например "30s", "5m"; "0" — до Ctrl+C`)
+	output := fs.String("output", cfg.Get("capture", "output", ""), "каталог для результатов (по умолчанию — ./pktdiag-capture-<timestamp>)")
+	format := fs.String("format", cfg.Get("report", "format", "html,json"), "форматы отчёта через запятую: html,json,md,pdf")
+	noArchive := fs.Bool("no-archive", !cfg.GetBool("report", "archive", true), "не собирать финальный tar.zst архив")
+	ring := fs.Int("ring", cfg.GetInt("capture", "ring", 0), "включить кольцевой буфер: количество файлов (0 — выключено)")
+	ringSize := fs.Int("ring-size", cfg.GetInt("capture", "ring_size", 100), "размер одного файла кольцевого буфера, МБ")
+	snaplen := fs.Int("snaplen", cfg.GetInt("capture", "snaplen", 0), "snapshot length tcpdump (0 — без ограничения, -s0)")
 	force := fs.Bool("force", false, "продолжить, даже если doctor нашёл проблемы (✘)")
 	if err := fs.Parse(reorderArgsForFlags(fs, args)); err != nil {
 		return err

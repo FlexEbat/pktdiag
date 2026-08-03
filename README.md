@@ -9,12 +9,13 @@ Go-зависимостей (стандартная библиотека + си�
 - Go 1.22+
 - `tcpdump`, `tshark`, `capinfos` (пакет `tshark`/`wireshark-common`), `zstd`, `tar` с поддержкой `--zstd`
 - root или `CAP_NET_RAW`/`CAP_NET_ADMIN` для захвата трафика
+- опционально: `wkhtmltopdf` (для `--format pdf`), `iptables`/`nftables`/`conntrack` (для соответствующих секций metadata.json — без них просто будут пропущены)
 
 Установка на Ubuntu/Debian:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y tcpdump tshark zstd
+sudo apt-get install -y tcpdump tshark zstd wkhtmltopdf iptables nftables conntrack
 ```
 
 ## Сборка
@@ -71,13 +72,34 @@ pktdiag health ./capture.pcapng
 # Короткий вывод только Health Score с разбивкой по компонентам.
 ```
 
+## Конфигурация (pktdiag.yaml)
+
+`pktdiag capture` может брать параметры из YAML-файла (см. пример
+`pktdiag.example.yaml`) — либо автоматически, если `./pktdiag.yaml`
+существует в текущем каталоге, либо явно через `--config path.yaml`.
+Явные флаги командной строки всегда переопределяют значения из конфига.
+
+Это узкий самодельный парсер (`internal/yamlcfg`), а не полноценный YAML —
+поддерживает только плоскую структуру "секция -> ключ: значение" без
+списков и глубокой вложенности; для целей capture-конфига этого достаточно
+(полноценный `gopkg.in/yaml.v3` недостижим — см. раздел про TUI ниже).
+
+```bash
+pktdiag capture                       # подхватит ./pktdiag.yaml, если есть
+pktdiag capture --config prod.yaml
+pktdiag capture --config prod.yaml --duration 10s   # duration переопределён явно
+```
+
 ## Что уже есть
 
 - Захват через `tcpdump` (интерфейс, BPF-фильтр, длительность, snaplen,
   базовая поддержка ring buffer через `-C/-W`)
+- YAML-конфиг для `capture` (`pktdiag.yaml`/`--config`) с приоритетом
+  явных флагов над значениями из файла
 - Сбор метаданных хоста без внешних зависимостей: uname, kernel, CPU, RAM,
   интерфейсы (`/proc/net/dev`, `/sys/class/net`), DNS (`/etc/resolv.conf`),
-  таблица маршрутизации (`/proc/net/route`, сырые строки)
+  таблица маршрутизации (`/proc/net/route`), правила `iptables`/`nftables`,
+  выборка `conntrack`, ключевые сетевые параметры `sysctl`
 - Анализ через `tshark`/`capinfos`: протоколы (TCP/UDP/ICMP/DNS/TLS/HTTP),
   TCP-метрики (retransmission/duplicate ACK/out-of-order/zero window/RST),
   RTT (avg/min/max по `tcp.analysis.ack_rtt`),
@@ -88,7 +110,8 @@ pktdiag health ./capture.pcapng
   причину с эвристической уверенностью
 - Хронология событий (`timeline`), быстрый чек-лист (`inspect`),
   сравнение двух захватов (`compare`)
-- Отчёты в JSON/HTML/Markdown + текстовая сводка для терминала
+- Отчёты в JSON/HTML/Markdown/**PDF** (через `wkhtmltopdf`) + текстовая
+  сводка для терминала
 - Архивация результата в `capture-<дата>.tar.zst`
 - Explain Engine — база знаний в `internal/explainx/data/explain.json`,
   легко расширяется новыми терминами
@@ -102,13 +125,14 @@ pktdiag health ./capture.pcapng
   либо доступ к прокси Go-модулей/`golang.org`, либо vendoring зависимостей
   из другого окружения. Сейчас вместо интерактивных вкладок — `analyze`,
   `diagnose`, `timeline`, `inspect` с текстовым/HTML выводом.
+  По той же причине конфиг читается самодельным парсером, а не
+  `gopkg.in/yaml.v3`.
 - Анализ нескольких файлов ring-буфера как единого целого (сейчас ring
   buffer только пробрасывается в tcpdump, отчёт строится по одному файлу)
-- YAML-конфиг (`pktdiag.yaml`) — сейчас только флаги командной строки
-- `iptables`/`nft`/`conntrack`/`sysctl` в metadata (сейчас только
-  uname/cpu/ram/интерфейсы/dns/routes)
-- `pktdiag export pdf` — HTML/JSON/MD есть, PDF не реализован
 - Кроссплатформенность — часть sysinfo (`/proc`, `/sys`) linux-specific
+- `conntrack`/`iptables`/`nftables` в metadata требуют root (уже есть
+  в требованиях), на не-root хостах эти поля просто останутся пустыми
+  с пометкой в `notes`
 
 ## Структура проекта
 
@@ -116,11 +140,13 @@ pktdiag health ./capture.pcapng
 cmd/            обработчики CLI-команд (без cobra — вручную, т.к. сеть
                  в среде сборки блокирует транзитивную зависимость cobra)
 internal/
-  sysinfo/      сбор метаданных хоста
+  sysinfo/      сбор метаданных хоста (+ iptables/nft/conntrack/sysctl)
   capture/      обёртка над tcpdump
   analyze/      обёртка над tshark/capinfos + детектор аномалий + health score
-  report/       модель отчёта + рендер в JSON/HTML/MD
+                + diagnose/timeline/inspect
+  report/       модель отчёта + рендер в JSON/HTML/MD/PDF
   archive/      упаковка в tar.zst
   doctorx/      проверки окружения
   explainx/     Explain Engine (база знаний в data/explain.json)
+  yamlcfg/      минимальный парсер pktdiag.yaml
 ```
