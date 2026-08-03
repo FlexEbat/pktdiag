@@ -148,7 +148,31 @@ func reorderArgsForFlags(fs *flag.FlagSet, args []string) []string {
 	return append(flagArgs, positional...)
 }
 
-// parseFormats разбирает "html,json,md" в множество форматов, по умолчанию html+json.
+// extractConfigPath ищет "--config <path>"/"--config=<path>" в сырых
+// аргументах (до основного разбора флагов) и возвращает путь к YAML-конфигу.
+// Если флаг не передан, но в текущем каталоге есть pktdiag.yaml — используется
+// он; иначе конфиг считается отсутствующим (пустая строка).
+func extractConfigPath(args []string) string {
+	for i, a := range args {
+		if a == "--config" || a == "-config" {
+			if i+1 < len(args) {
+				return args[i+1]
+			}
+		}
+		if strings.HasPrefix(a, "--config=") {
+			return strings.TrimPrefix(a, "--config=")
+		}
+		if strings.HasPrefix(a, "-config=") {
+			return strings.TrimPrefix(a, "-config=")
+		}
+	}
+	if _, err := os.Stat("pktdiag.yaml"); err == nil {
+		return "pktdiag.yaml"
+	}
+	return ""
+}
+
+// parseFormats разбирает "html,json,md,pdf" в множество форматов, по умолчанию html+json.
 func parseFormats(s string) map[string]bool {
 	out := map[string]bool{}
 	if strings.TrimSpace(s) == "" {

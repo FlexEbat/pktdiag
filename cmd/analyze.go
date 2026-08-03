@@ -12,14 +12,14 @@ import (
 
 func runAnalyze(args []string) error {
 	fs := flag.NewFlagSet("analyze", flag.ContinueOnError)
-	save := fs.String("save", "", "дополнительно сохранить отчёт в форматах через запятую (html,json,md)")
+	save := fs.String("save", "", "дополнительно сохранить отчёт в форматах через запятую (html,json,md,pdf)")
 	output := fs.String("output", "", "каталог для сохранения (используется вместе с --save)")
 	explainAnomalies := fs.Bool("explain", false, "показать подробное объяснение по каждой найденной аномалии")
 	if err := fs.Parse(reorderArgsForFlags(fs, args)); err != nil {
 		return err
 	}
 	if fs.NArg() < 1 {
-		return fmt.Errorf("использование: pktdiag analyze <pcap|каталог|bundle.tar.zst> [--explain] [--save html,json,md]")
+		return fmt.Errorf("использование: pktdiag analyze <pcap|каталог|bundle.tar.zst> [--explain] [--save html,json,md,pdf]")
 	}
 	src := fs.Arg(0)
 
