@@ -5,8 +5,11 @@ package capture
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -42,7 +45,47 @@ type Result struct {
 
 var summaryRe = regexp.MustCompile(`^(\d+)\s+packets\s+(captured|received by filter|dropped by kernel)`)
 
-// Run запускает tcpdump с заданными опциями и блокируется до завершения захвата.
+// FindRingFiles ищет файлы кольцевого буфера, которые tcpdump создаёт из
+// basePath, добавляя числовой суффикс сразу к имени файла без разделителя
+// (например, "capture.pcapng" -> "capture.pcapng0", "capture.pcapng1", ...).
+// Возвращает пути, отсортированные по числовому суффиксу.
+func FindRingFiles(basePath string) ([]string, error) {
+	matches, err := filepath.Glob(basePath + "[0-9]*")
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(matches, func(i, j int) bool {
+		return ringSuffixNum(matches[i], basePath) < ringSuffixNum(matches[j], basePath)
+	})
+	return matches, nil
+}
+
+func ringSuffixNum(path, basePath string) int {
+	suffix := strings.TrimPrefix(path, basePath)
+	n, err := strconv.Atoi(suffix)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+// MergeRingFiles склеивает несколько файлов кольцевого буфера в один pcap
+// через системный mergecap (часть пакета wireshark-common), чтобы можно
+// было анализировать их как единый непрерывный поток.
+func MergeRingFiles(files []string, mergedPath string) error {
+	if len(files) == 0 {
+		return fmt.Errorf("нет файлов для слияния")
+	}
+	if _, err := exec.LookPath("mergecap"); err != nil {
+		return fmt.Errorf("mergecap не найден в PATH (пакет wireshark-common): %w", err)
+	}
+	args := append([]string{"-w", mergedPath}, files...)
+	out, err := exec.Command("mergecap", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("mergecap: %w\n%s", err, string(out))
+	}
+	return nil
+}
 func Run(opts Options) (Result, error) {
 	var res Result
 
@@ -54,6 +97,14 @@ func Run(opts Options) (Result, error) {
 	}
 
 	args := []string{"-i", opts.Interface}
+	if os.Geteuid() == 0 {
+		// По умолчанию tcpdump на Ubuntu/Debian сбрасывает привилегии на
+		// пользователя "tcpdump" сразу после открытия интерфейса. Это ломает
+		// ring buffer: новые файлы кольца создаются уже без прав на запись
+		// в каталог результатов (он создан от root с 0755). "-Z root"
+		// отключает сброс привилегий, раз мы и так уже root.
+		args = append(args, "-Z", "root")
+	}
 	if opts.Snaplen == 0 {
 		args = append(args, "-s", "0")
 	} else {

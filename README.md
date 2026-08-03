@@ -9,7 +9,7 @@ Go-зависимостей (стандартная библиотека + си�
 - Go 1.22+
 - `tcpdump`, `tshark`, `capinfos` (пакет `tshark`/`wireshark-common`), `zstd`, `tar` с поддержкой `--zstd`
 - root или `CAP_NET_RAW`/`CAP_NET_ADMIN` для захвата трафика
-- опционально: `wkhtmltopdf` (для `--format pdf`), `iptables`/`nftables`/`conntrack` (для соответствующих секций metadata.json — без них просто будут пропущены)
+- опционально: `wkhtmltopdf` (для `--format pdf`), `iptables`/`nftables`/`conntrack` (для соответствующих секций metadata.json — без них просто будут пропущены), `mergecap` (входит в `tshark`/`wireshark-common`, нужен для анализа ring buffer)
 
 Установка на Ubuntu/Debian:
 
@@ -93,7 +93,12 @@ pktdiag capture --config prod.yaml --duration 10s   # duration переопре�
 ## Что уже есть
 
 - Захват через `tcpdump` (интерфейс, BPF-фильтр, длительность, snaplen,
-  базовая поддержка ring buffer через `-C/-W`)
+  ring buffer через `-C/-W`). При запуске от root добавляется `-Z root`,
+  чтобы tcpdump не сбрасывал привилегии перед созданием следующих файлов
+  кольца (иначе ротация падает с Permission denied на каталог результатов)
+- Анализ ring buffer: после захвата файлы кольца (`capture.pcapngN`)
+  находятся и склеиваются через `mergecap` в один pcap для полноценного
+  анализа — проверено на реальной ротации (4/4 файла, ~3МБ трафика)
 - YAML-конфиг для `capture` (`pktdiag.yaml`/`--config`) с приоритетом
   явных флагов над значениями из файла
 - Сбор метаданных хоста без внешних зависимостей: uname, kernel, CPU, RAM,
@@ -127,8 +132,6 @@ pktdiag capture --config prod.yaml --duration 10s   # duration переопре�
   `diagnose`, `timeline`, `inspect` с текстовым/HTML выводом.
   По той же причине конфиг читается самодельным парсером, а не
   `gopkg.in/yaml.v3`.
-- Анализ нескольких файлов ring-буфера как единого целого (сейчас ring
-  buffer только пробрасывается в tcpdump, отчёт строится по одному файлу)
 - Кроссплатформенность — часть sysinfo (`/proc`, `/sys`) linux-specific
 - `conntrack`/`iptables`/`nftables` в metadata требуют root (уже есть
   в требованиях), на не-root хостах эти поля просто останутся пустыми

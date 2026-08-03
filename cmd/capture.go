@@ -121,8 +121,22 @@ func runCapture(args []string) error {
 		capRes.EndedAt.Sub(capRes.StartedAt).Seconds())
 
 	if *ring > 0 {
-		fmt.Println("Использован кольцевой буфер — анализ построен только по текущему активному файлу," +
-			" остальные файлы кольца сохранены в каталоге результатов без анализа (см. следующие версии).")
+		ringFiles, err := capture.FindRingFiles(pcapPath)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "предупреждение: не удалось найти файлы кольцевого буфера:", err)
+		}
+		if len(ringFiles) == 0 {
+			fmt.Println("Кольцевой буфер включён, но файлы с числовым суффиксом не найдены — анализирую как есть.")
+		} else {
+			fmt.Printf("Кольцевой буфер: найдено %d файлов (%v) — сливаю через mergecap для анализа.\n", len(ringFiles), ringFiles)
+			merged := filepath.Join(outDir, "capture.merged.pcapng")
+			if err := capture.MergeRingFiles(ringFiles, merged); err != nil {
+				fmt.Fprintln(os.Stderr, "предупреждение: слияние файлов кольца не удалось, анализирую только базовый файл:", err)
+			} else {
+				pcapPath = merged
+				fmt.Println("Объединённый файл для анализа: " + merged)
+			}
+		}
 	}
 
 	// 7. Анализ и отчёт
