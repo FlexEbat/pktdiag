@@ -166,14 +166,37 @@ the "source" argument accepts any of:
 ### `pktdiag doctor`
 
 Checks that the environment is ready to capture: presence of
-`tcpdump`/`dumpcap`/`tshark`/`capinfos`/`zstd`/`wkhtmltopdf`, effective
-permissions (root or not), free disk space, and available network
-interfaces. Fails (via error return) if anything required (✘) is missing;
-optional tools missing show as ⚠ and don't block capture.
+`tcpdump`/`dumpcap`/`tshark`/`capinfos`/`mergecap`/`zstd`/`wkhtmltopdf`/
+`iptables`/`nft`/`conntrack`, effective permissions (root or not), free
+disk space, and available network interfaces. Fails (via error return) if
+anything required (✘) is missing; optional tools missing show as ⚠ and
+don't block capture.
+
+```
+pktdiag doctor [flags]
+
+  --install    offer (or, with --yes, immediately run) automatic
+               installation of missing packages via the detected package
+               manager
+  --yes        skip the confirmation prompt before installing (used with
+               --install)
+```
 
 ```bash
-pktdiag doctor
+pktdiag doctor                    # just report status
+pktdiag doctor --install          # report status, then ask before installing
+sudo pktdiag doctor --install --yes   # install missing packages, no prompt
 ```
+
+Automatic installation currently supports **apt** (Debian/Ubuntu) only and
+requires root. On other package managers (`dnf`/`yum`/`pacman`/`apk`/`brew`),
+`doctor` detects which one is present and prints the equivalent manual
+install command instead of attempting it — same for apt without root. If
+`apt-get update` fails (e.g. an unrelated third-party APT source is
+unreachable), pktdiag logs a warning and still attempts `apt-get install`,
+since the packages pktdiag needs usually come from the main distro
+repositories, which may have updated successfully even if one other
+source failed.
 
 ### `pktdiag capture`
 
