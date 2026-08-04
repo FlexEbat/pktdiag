@@ -1,0 +1,32 @@
+commit: 1210331a9b5141f143134f359711d94bb59a5da6
+build: success
+vet: success
+test: failure
+
+=== build ===
+pktdiag/internal/analyze
+pktdiag/cmd
+pktdiag
+
+=== vet ===
+
+=== test ===
+?   	pktdiag	[no test files]
+?   	pktdiag/cmd	[no test files]
+?   	pktdiag/internal/archive	[no test files]
+?   	pktdiag/internal/capture	[no test files]
+?   	pktdiag/internal/doctorx	[no test files]
+?   	pktdiag/internal/explainx	[no test files]
+?   	pktdiag/internal/report	[no test files]
+?   	pktdiag/internal/sysinfo	[no test files]
+?   	pktdiag/internal/yamlcfg	[no test files]
+=== RUN   TestDeepScanMixedTraffic
+    deepscan_test.go:30: TotalIPv4 = 0, ожидалось 34
+    deepscan_test.go:30: Fragmented = 0, ожидалось 6
+    deepscan_test.go:30: SynOnly = 0, ожидалось 1
+    deepscan_test.go:30: SynAck = 0, ожидалось 1
+    deepscan_test.go:30: ICMPErrors = 0, ожидалось 1
+--- FAIL: TestDeepScanMixedTraffic (0.00s)
+FAIL
+FAIL	pktdiag/internal/analyze	0.006s
+FAIL
