@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// TimelineEvent — одно событие на хронологической ленте.
+// TimelineEvent хранит одно событие на хронологической ленте.
 type TimelineEvent struct {
 	Time   time.Time `json:"time"`
 	Label  string    `json:"label"`
@@ -92,7 +92,7 @@ func sortEventsByTime(events []TimelineEvent) {
 // FormatTimeline форматирует события для вывода в терминал.
 func FormatTimeline(events []TimelineEvent) string {
 	if len(events) == 0 {
-		return "События не найдены — заметных TCP/DNS-аномалий в захвате нет.\n"
+		return "События не найдены. Заметных TCP/DNS-аномалий в захвате нет.\n"
 	}
 	var b strings.Builder
 	for _, e := range events {

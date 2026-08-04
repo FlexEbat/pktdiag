@@ -20,7 +20,7 @@ func runDoctor(args []string) error {
 
 	rep := doctorx.Run()
 
-	fmt.Println("pktdiag doctor — проверка окружения")
+	fmt.Println("pktdiag doctor: проверка окружения")
 	fmt.Println()
 	for _, c := range rep.Checks {
 		fmt.Printf("%s %-14s %s\n", c.Status.Symbol(), c.Name, c.Detail)

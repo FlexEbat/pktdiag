@@ -14,13 +14,13 @@ import (
 func requireTools() error {
 	for _, bin := range []string{"tshark", "capinfos"} {
 		if _, err := exec.LookPath(bin); err != nil {
-			return fmt.Errorf("%s не найден в PATH — установите tshark/wireshark-common", bin)
+			return fmt.Errorf("%s не найден в PATH, установите tshark/wireshark-common", bin)
 		}
 	}
 	return nil
 }
 
-// capinfoSummary — базовые данные о файле захвата.
+// capinfoSummary хранит базовые данные о файле захвата.
 type capinfoSummary struct {
 	Packets     int64
 	DurationSec float64
@@ -82,7 +82,7 @@ func fieldValues(pcapPath, filter, field string) ([]float64, error) {
 }
 
 // runTsharkFields выполняет tshark -Y filter -T fields -e f1 -e f2 ...
-// и возвращает построчно значения полей (табуляция — разделитель по умолчанию).
+// и возвращает построчно значения полей. По умолчанию разделитель полей: табуляция.
 func runTsharkFields(pcapPath, filter string, fields ...string) ([][]string, error) {
 	args := []string{"-r", pcapPath, "-Y", filter, "-T", "fields"}
 	for _, f := range fields {

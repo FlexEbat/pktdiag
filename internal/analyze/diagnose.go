@@ -5,7 +5,7 @@ import (
 	"pktdiag/internal/report"
 )
 
-// Diagnosis — результат команды `pktdiag diagnose` (UC-19 из ТЗ).
+// Diagnosis хранит результат команды `pktdiag diagnose` (UC-19 из ТЗ).
 type Diagnosis struct {
 	ProbableCause   string   `json:"probable_cause"`
 	Confidence      int      `json:"confidence"` // 0-100, эвристика

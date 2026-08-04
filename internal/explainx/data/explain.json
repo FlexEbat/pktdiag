@@ -1,7 +1,12 @@
 [
   {
     "id": "retransmission",
-    "aliases": ["tcp.retransmission", "tcp_retransmission", "ретрансмиссия", "повторная передача"],
+    "aliases": [
+      "tcp.retransmission",
+      "tcp_retransmission",
+      "ретрансмиссия",
+      "повторная передача"
+    ],
     "title": "TCP Retransmission",
     "good": "< 1%",
     "warning": "1–5%",
@@ -18,29 +23,37 @@
       "Проверить загрузку канала и очереди на промежуточных устройствах",
       "Проверить MTU на пути (PMTUD, ICMP fragmentation needed)",
       "Проверить правила firewall/NAT на потерю пакетов",
-      "Посмотреть RTT — резкий рост RTT обычно сопутствует потерям"
+      "Посмотреть RTT: резкий рост обычно сопутствует потерям"
     ]
   },
   {
     "id": "duplicate_ack",
-    "aliases": ["tcp.duplicate_ack", "duplicate ack", "дубликат ack"],
+    "aliases": [
+      "tcp.duplicate_ack",
+      "duplicate ack",
+      "дубликат ack"
+    ],
     "title": "TCP Duplicate ACK",
     "good": "единичные",
     "warning": "регулярные, 3+ подряд",
     "critical": "постоянный поток",
-    "what": "Получатель повторно подтверждает один и тот же байт данных — обычно означает, что он получил пакеты не по порядку и ждёт пропущенный сегмент.",
+    "what": "Получатель повторно подтверждает один и тот же байт данных. Обычно это значит, что он получил пакеты не по порядку и ждёт пропущенный сегмент.",
     "causes": [
       "Потеря одного сегмента в середине потока",
       "Переупорядочивание пакетов в сети (несколько путей / балансировка нагрузки)"
     ],
     "recommendations": [
-      "Смотреть вместе с Out of Order и Retransmission — обычно это одна и та же причина",
+      "Смотреть вместе с Out of Order и Retransmission: обычно это одна и та же причина",
       "Проверить маршрутизацию на предмет асимметричных путей"
     ]
   },
   {
     "id": "out_of_order",
-    "aliases": ["tcp.out_of_order", "out of order", "переупорядочивание"],
+    "aliases": [
+      "tcp.out_of_order",
+      "out of order",
+      "переупорядочивание"
+    ],
     "title": "TCP Out of Order",
     "good": "редко",
     "warning": "периодически",
@@ -58,7 +71,11 @@
   },
   {
     "id": "zero_window",
-    "aliases": ["tcp.zero_window", "zero window", "нулевое окно"],
+    "aliases": [
+      "tcp.zero_window",
+      "zero window",
+      "нулевое окно"
+    ],
     "title": "TCP Zero Window",
     "good": "отсутствует",
     "warning": "кратковременно",
@@ -77,11 +94,16 @@
   },
   {
     "id": "rst",
-    "aliases": ["tcp.reset", "tcp reset", "rst", "сброс соединения"],
+    "aliases": [
+      "tcp.reset",
+      "tcp reset",
+      "rst",
+      "сброс соединения"
+    ],
     "title": "TCP Reset (RST)",
     "good": "единичные, ожидаемые (закрытие соединений)",
     "warning": "частые RST от одной стороны",
-    "critical": "массовые RST — 'RST storm'",
+    "critical": "массовые RST ('RST storm')",
     "what": "Одна из сторон принудительно обрывает TCP-соединение вместо штатного закрытия (FIN).",
     "causes": [
       "Приложение или порт недоступны",
@@ -97,7 +119,11 @@
   },
   {
     "id": "rtt",
-    "aliases": ["rtt", "round trip time", "задержка"],
+    "aliases": [
+      "rtt",
+      "round trip time",
+      "задержка"
+    ],
     "title": "RTT (Round Trip Time)",
     "good": "стабильный, соответствует ожидаемой географии/сети",
     "warning": "рост в 2 раза относительно базового уровня",
@@ -115,7 +141,11 @@
   },
   {
     "id": "dns_timeout",
-    "aliases": ["dns.timeout", "dns timeout", "dns таймаут"],
+    "aliases": [
+      "dns.timeout",
+      "dns timeout",
+      "dns таймаут"
+    ],
     "title": "DNS Timeout",
     "good": "0 таймаутов",
     "warning": "единичные",
@@ -133,7 +163,11 @@
   },
   {
     "id": "dns_slow",
-    "aliases": ["dns.slow", "dns slow response", "медленный dns"],
+    "aliases": [
+      "dns.slow",
+      "dns slow response",
+      "медленный dns"
+    ],
     "title": "Медленный ответ DNS",
     "good": "< 50 мс",
     "warning": "50–200 мс",
@@ -151,12 +185,16 @@
   },
   {
     "id": "syn_flood",
-    "aliases": ["syn_flood", "syn flood", "syn-флуд"],
+    "aliases": [
+      "syn_flood",
+      "syn flood",
+      "syn-флуд"
+    ],
     "title": "SYN Flood",
     "good": "отсутствует",
     "warning": "аномальный рост SYN без ACK",
     "critical": "массовый поток SYN без завершения хендшейка",
-    "what": "Большое количество TCP SYN-пакетов без завершения three-way handshake — либо атака, либо серьёзная проблема с доступностью сервиса.",
+    "what": "Большое количество TCP SYN-пакетов без завершения three-way handshake. Это атака или серьёзная проблема с доступностью сервиса.",
     "causes": [
       "DoS/DDoS атака типа SYN flood",
       "Сервис не отвечает на SYN (перегружен, недоступен)",
@@ -170,7 +208,10 @@
   },
   {
     "id": "fragmentation",
-    "aliases": ["fragmentation", "фрагментация"],
+    "aliases": [
+      "fragmentation",
+      "фрагментация"
+    ],
     "title": "IP Fragmentation",
     "good": "отсутствует",
     "warning": "единичные случаи",
@@ -188,7 +229,12 @@
   },
   {
     "id": "packets_dropped",
-    "aliases": ["dropped", "packets dropped", "потерянные пакеты", "drops"],
+    "aliases": [
+      "dropped",
+      "packets dropped",
+      "потерянные пакеты",
+      "drops"
+    ],
     "title": "Packets Dropped (при захвате)",
     "good": "0",
     "warning": "> 0, единичные",
@@ -207,7 +253,11 @@
   },
   {
     "id": "bandwidth",
-    "aliases": ["bandwidth", "пропускная способность", "throughput"],
+    "aliases": [
+      "bandwidth",
+      "пропускная способность",
+      "throughput"
+    ],
     "title": "Bandwidth / Throughput",
     "good": "в пределах ожидаемого для канала",
     "warning": "-",
@@ -216,12 +266,16 @@
     "causes": [],
     "recommendations": [
       "Сравнить с номинальной пропускной способностью канала",
-      "Смотреть вместе с Retransmission — низкий throughput при высоком RTT/потерях обычно связан"
+      "Смотреть вместе с Retransmission: низкий throughput обычно связан с высоким RTT или потерями"
     ]
   },
   {
     "id": "pps",
-    "aliases": ["pps", "packets per second", "пакетов в секунду"],
+    "aliases": [
+      "pps",
+      "packets per second",
+      "пакетов в секунду"
+    ],
     "title": "Average PPS",
     "good": "-",
     "warning": "-",
@@ -230,6 +284,53 @@
     "causes": [],
     "recommendations": [
       "Резкий рост PPS при нормальном bandwidth может указывать на мелкие пакеты (например, keepalive-флуд или атаку)"
+    ]
+  },
+  {
+    "id": "icmp_errors",
+    "aliases": [
+      "icmp.errors",
+      "icmp error",
+      "icmp-ошибки"
+    ],
+    "title": "ICMP Errors",
+    "good": "отсутствуют",
+    "warning": "единичные",
+    "critical": "регулярные (Destination Unreachable / Time Exceeded / Fragmentation Needed)",
+    "what": "ICMP-сообщения об ошибках (Destination Unreachable, Time Exceeded, Parameter Problem и т.д.), а не обычный ping (Echo Request/Reply).",
+    "causes": [
+      "Хост или порт назначения недоступен",
+      "TTL истёк по дороге (маршрутная петля или слишком длинный путь)",
+      "Path MTU Discovery: фрагментация нужна, но запрещён DF-бит",
+      "Firewall на пути явно отвечает reject вместо drop"
+    ],
+    "recommendations": [
+      "Смотреть конкретный ICMP type/code: он указывает точную причину",
+      "Проверить маршрутизацию traceroute/MTR в сторону проблемного адреса",
+      "Проверить MTU на пути, если код связан с фрагментацией"
+    ]
+  },
+  {
+    "id": "mtu_mismatch",
+    "aliases": [
+      "mtu.mismatch",
+      "mtu mismatch",
+      "разное mtu"
+    ],
+    "title": "MTU Mismatch",
+    "good": "MTU одинаковый на всех активных интерфейсах хоста",
+    "warning": "разный MTU на активных интерфейсах",
+    "critical": "-",
+    "what": "На одном хосте активные сетевые интерфейсы сообщают разный MTU. Само по себе это не всегда проблема (например, туннели специально работают с меньшим MTU), но часто указывает на потенциальный источник фрагментации или чёрных дыр PMTUD.",
+    "causes": [
+      "Один из интерфейсов это туннель (VPN/GRE/VXLAN) с уменьшенным MTU",
+      "Ошибка конфигурации сетевой карты или драйвера",
+      "Разные MTU настроены исторически и забыты"
+    ],
+    "recommendations": [
+      "Проверить, ожидаемо ли расхождение (для туннеля это нормально)",
+      "Если расхождение неожиданно, привести MTU к единому значению",
+      "Проверить, не приводит ли это к фрагментации транзитного трафика"
     ]
   }
 ]

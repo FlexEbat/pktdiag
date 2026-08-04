@@ -1,7 +1,7 @@
 // Package yamlcfg реализует чтение конфигурации pktdiag.yaml.
 //
 // Это НЕ полноценный YAML-парсер: сеть в среде сборки блокирует все
-// внешние Go-модули (см. README — попытка подключить bubbletea упёрлась
+// внешние Go-модули (см. README: попытка подключить bubbletea упёрлась
 // в недоступность golang.org/x/*), поэтому вместо стороннего пакета
 // (gopkg.in/yaml.v3 и т.п.) реализован узкий парсер под конкретную
 // структуру конфига из ТЗ:
@@ -16,7 +16,7 @@
 //
 // Поддерживается только два уровня вложенности, простые скаляры
 // (строки/числа/bool), однострочные комментарии через "#" и пустые строки.
-// Списки, многострочные строки, якоря и т.п. — не поддерживаются.
+// Списки, многострочные строки и якоря не поддерживаются.
 package yamlcfg
 
 import (
@@ -27,13 +27,13 @@ import (
 	"strings"
 )
 
-// Config — секции, которые понимает pktdiag.yaml.
+// Config хранит секции, которые понимает pktdiag.yaml.
 type Config struct {
 	Sections map[string]map[string]string
 }
 
-// Load читает и разбирает файл конфигурации. Если файла нет — возвращает
-// пустой Config и nil error (конфиг необязателен).
+// Load читает и разбирает файл конфигурации. Файл необязателен: если
+// его нет, Load возвращает пустой Config и nil error.
 func Load(path string) (Config, error) {
 	cfg := Config{Sections: map[string]map[string]string{}}
 
@@ -136,8 +136,8 @@ func (c Config) Get(section, key, def string) string {
 	return def
 }
 
-// GetInt — то же, что Get, но с разбором в int; при ошибке разбора
-// возвращает def.
+// GetInt работает как Get, но разбирает значение в int. При ошибке
+// разбора возвращает def.
 func (c Config) GetInt(section, key string, def int) int {
 	v := c.Get(section, key, "")
 	if v == "" {
@@ -150,8 +150,8 @@ func (c Config) GetInt(section, key string, def int) int {
 	return n
 }
 
-// GetBool — то же, что Get, но с разбором в bool; при ошибке разбора
-// возвращает def.
+// GetBool работает как Get, но разбирает значение в bool. При ошибке
+// разбора возвращает def.
 func (c Config) GetBool(section, key string, def bool) bool {
 	v := c.Get(section, key, "")
 	if v == "" {

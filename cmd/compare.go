@@ -81,5 +81,6 @@ func buildReportFromSource(src string) (report.Report, error) {
 		return report.Report{}, err
 	}
 	rep.System = rs.System
+	analyze.AddSystemChecks(&rep)
 	return rep, nil
 }

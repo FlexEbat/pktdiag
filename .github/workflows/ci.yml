@@ -23,22 +23,79 @@ jobs:
           go-version: '1.22'
           cache: true
 
-      # go.sum can't be produced in the sandboxed environment used during
-      # initial development (network egress blocks golang.org/x/* module
-      # resolution), so it may be missing or stale. `go mod tidy` fetches
-      # everything and regenerates it here, where normal internet access
-      # is available.
+      # go.sum требует хэши реальных пакетов. Песочница, где идёт
+      # разработка, не достаёт golang.org/x/*, поэтому go.sum там
+      # не собрать. go mod tidy пересобирает его здесь.
       - name: go mod tidy
         run: go mod tidy
 
       - name: Build
-        run: go build -v ./...
+        id: build
+        continue-on-error: true
+        run: go build -v ./... > /tmp/build.log 2>&1
+
+      - name: Build binary
+        id: build_bin
+        if: steps.build.outcome == 'success'
+        run: go build -o pktdiag-linux-amd64 .
+
+      - name: Upload binary
+        if: steps.build_bin.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pktdiag-linux-amd64
+          path: pktdiag-linux-amd64
+          retention-days: 7
 
       - name: Vet
-        run: go vet ./...
+        id: vet
+        continue-on-error: true
+        run: go vet ./... > /tmp/vet.log 2>&1
 
       - name: Test
-        run: go test -v ./... || true # no tests yet; don't fail CI on "no test files"
+        id: test
+        continue-on-error: true
+        run: go test -v ./... > /tmp/test.log 2>&1
+
+      # Логи джобов лежат в blob.core.windows.net и недоступны из
+      # песочницы разработки, а Checks API токену недоступен. Публикуем
+      # лог падения прямо в репозиторий, где его читает уже проверенный
+      # путь git pull.
+      - name: Publish failure log
+        if: steps.build.outcome == 'failure' || steps.vet.outcome == 'failure' || steps.test.outcome == 'failure'
+        run: |
+          mkdir -p .ci
+          {
+            echo "commit: ${{ github.sha }}"
+            echo "build: ${{ steps.build.outcome }}"
+            echo "vet: ${{ steps.vet.outcome }}"
+            echo "test: ${{ steps.test.outcome }}"
+            echo
+            echo "=== build ==="
+            cat /tmp/build.log 2>/dev/null
+            echo
+            echo "=== vet ==="
+            cat /tmp/vet.log 2>/dev/null
+            echo
+            echo "=== test ==="
+            cat /tmp/test.log 2>/dev/null
+          } > .ci/last-failure.log
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .ci/last-failure.log
+          git commit -m "ci: записать лог падения сборки [skip ci]"
+          git push
+
+      - name: Remove stale failure log
+        if: steps.build.outcome == 'success' && steps.vet.outcome == 'success' && steps.test.outcome == 'success'
+        run: |
+          if [ -f .ci/last-failure.log ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git rm .ci/last-failure.log
+            git commit -m "ci: сборка снова зелёная, лог падения не нужен [skip ci]"
+            git push
+          fi
 
       - name: Commit go.sum/go.mod if changed
         if: github.event_name == 'push'
@@ -47,6 +104,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add go.mod go.sum 2>/dev/null || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore: regenerate go.mod/go.sum via CI [skip ci]"
+            git commit -m "chore: пересобрать go.mod/go.sum через CI [skip ci]"
             git push
           fi
+
+      - name: Fail job if build/vet/test failed
+        if: steps.build.outcome == 'failure' || steps.vet.outcome == 'failure' || steps.test.outcome == 'failure'
+        run: exit 1

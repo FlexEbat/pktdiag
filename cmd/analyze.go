@@ -34,6 +34,7 @@ func runAnalyze(args []string) error {
 		return err
 	}
 	rep.System = rs.System
+	analyze.AddSystemChecks(&rep)
 
 	fmt.Println(report.TerminalSummary(rep))
 

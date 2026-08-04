@@ -1,4 +1,4 @@
-// Package explainx реализует "Explain Engine" — объяснение сетевых
+// Package explainx реализует Explain Engine: объясняет сетевые
 // терминов и метрик простым языком с указанием причин и рекомендаций.
 package explainx
 
@@ -13,7 +13,7 @@ import (
 //go:embed data/explain.json
 var dataFS embed.FS
 
-// Entry — одна статья базы знаний.
+// Entry хранит одну статью базы знаний.
 type Entry struct {
 	ID              string   `json:"id"`
 	Aliases         []string `json:"aliases"`
@@ -62,7 +62,7 @@ func Lookup(term string) (*Entry, bool) {
 	return e, ok
 }
 
-// All возвращает список всех известных терминов (по ID) — для help/автодополнения.
+// All возвращает список ID всех известных терминов, для help и автодополнения.
 func All() []string {
 	ids := make([]string, 0, len(entries))
 	for _, e := range entries {

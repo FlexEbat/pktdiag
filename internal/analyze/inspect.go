@@ -2,7 +2,7 @@ package analyze
 
 import "fmt"
 
-// InspectItem — одна строка чек-листа.
+// InspectItem хранит одну строку чек-листа.
 type InspectItem struct {
 	Group  string `json:"group"` // TCP | DNS | TLS
 	Name   string `json:"name"`
@@ -12,7 +12,7 @@ type InspectItem struct {
 
 // InspectFromReport строит чек-лист, переиспользуя уже посчитанную статистику
 // (report.Report) и добавляя точечные проверки, которых там нет
-// (MSS/Window Scale в SYN, TLS alerts, keepalive) — см. UC-20 в ТЗ.
+// (MSS/Window Scale в SYN, TLS alerts, keepalive), см. UC-20 в ТЗ.
 func InspectFromReport(pcapPath string, tcpTotal, dnsTotal, tlsTotal int,
 	retransmissions, zeroWindow int) ([]InspectItem, error) {
 
