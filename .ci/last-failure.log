@@ -1,4 +1,4 @@
-commit: f605ca8df6140475d70b746fd851ec34d35c1327
+commit: f403ecc822a70c379ecfe6d22f994432118a8b2a
 build: success
 vet: success
 test: failure
@@ -23,6 +23,7 @@ pktdiag
 === RUN   TestDebugPacketReader
 DEBUG: linkType=Ethernet rawLinkType=1
 DEBUG: прочитано пакетов=25 firstPacketLen=66
+DEBUG: baseLayerType=Unknown decodedLayers=[Packet decoding error: Layer type not currently supported] errorLayer=Packet decoding error: Layer type not currently supported
 --- PASS: TestDebugPacketReader (0.00s)
 === RUN   TestDeepScanMixedTraffic
     deepscan_test.go:30: TotalIPv4 = 0, ожидалось 34
