@@ -34,6 +34,8 @@ func runReport(args []string) error {
 	}
 	rep.System = rs.System
 	analyze.AddSystemChecks(&rep)
+
+	outDir := *output
 	if outDir == "" {
 		outDir = filepath.Dir(rs.PcapPath)
 	}
