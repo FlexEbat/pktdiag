@@ -37,6 +37,49 @@ var icmpErrorTypes = map[uint8]bool{
 	12: true, // Parameter Problem
 }
 
+// dltLinuxSLL и dltLinuxSLL2 — числовые коды link-layer типов Linux cooked
+// capture (используются tcpdump на интерфейсе any). Значения совпадают с
+// DLT_LINUX_SLL/DLT_LINUX_SLL2 из libpcap. gopacket v1.1.19 не регистрирует
+// декодер для SLL2 (формат новее этого релиза), LinkType.LayerType() для
+// него возвращает LayerTypeZero, и gopacket.NewPacket не находит вложенные
+// слои. Разбираем оба формата вручную: срезаем фиксированный заголовок
+// и передаём в gopacket остаток, начиная с IPv4.
+const (
+	dltLinuxSLL  = 113 // заголовок 16 байт, protocol type в последних 2 байтах
+	dltLinuxSLL2 = 276 // заголовок 20 байт, protocol type в первых 2 байтах
+)
+
+const ethertypeIPv4 = 0x0800
+
+// stripCookedHeader срезает заголовок Linux cooked capture (SLL/SLL2) и
+// возвращает данные, готовые к декодированию как IPv4. ok=false для
+// нераспознанного linkType или пакета не-IPv4 (ARP и т.п.) — такие пакеты
+// вне интереса DeepScan, их пропускают.
+func stripCookedHeader(rawLinkType int, data []byte) (payload []byte, ok bool) {
+	switch rawLinkType {
+	case dltLinuxSLL2:
+		if len(data) < 20 {
+			return nil, false
+		}
+		protoType := uint16(data[0])<<8 | uint16(data[1])
+		if protoType != ethertypeIPv4 {
+			return nil, false
+		}
+		return data[20:], true
+	case dltLinuxSLL:
+		if len(data) < 16 {
+			return nil, false
+		}
+		protoType := uint16(data[14])<<8 | uint16(data[15])
+		if protoType != ethertypeIPv4 {
+			return nil, false
+		}
+		return data[16:], true
+	default:
+		return data, true
+	}
+}
+
 // DeepScan читает pcap/pcapng файл через gopacket и считает пакеты,
 // подходящие под фрагментацию/SYN-flood/ICMP-ошибки.
 func DeepScan(pcapPath string) (DeepScanResult, error) {
@@ -52,6 +95,7 @@ func DeepScan(pcapPath string) (DeepScanResult, error) {
 	if err != nil {
 		return res, err
 	}
+	rawLinkType := int(linkType)
 	baseLayer := linkType.LayerType()
 
 	for {
@@ -63,7 +107,16 @@ func DeepScan(pcapPath string) (DeepScanResult, error) {
 			return res, fmt.Errorf("чтение пакета: %w", err)
 		}
 
-		packet := gopacket.NewPacket(data, baseLayer, gopacket.NoCopy)
+		payload, ok := stripCookedHeader(rawLinkType, data)
+		if !ok {
+			continue
+		}
+		layer := baseLayer
+		if rawLinkType == dltLinuxSLL || rawLinkType == dltLinuxSLL2 {
+			layer = layers.LayerTypeIPv4
+		}
+
+		packet := gopacket.NewPacket(payload, layer, gopacket.NoCopy)
 
 		if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
 			ip, ok := ipLayer.(*layers.IPv4)
