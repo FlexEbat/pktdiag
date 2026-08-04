@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"testing"
+
+	"github.com/google/gopacket"
 )
 
 // Временный тест: печатает, что реально возвращает newPacketReader,
@@ -42,4 +44,21 @@ func TestDebugPacketReader(t *testing.T) {
 	if count == 0 {
 		t.Fatal("DEBUG: 0 пакетов прочитано")
 	}
+
+	f2, err := os.Open("testdata/eth.pcapng")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f2.Close()
+	reader2, linkType2, err := newPacketReader(f2)
+	if err != nil {
+		t.Fatalf("newPacketReader (2): %v", err)
+	}
+	data, _, err := reader2.ReadPacketData()
+	if err != nil {
+		t.Fatalf("ReadPacketData (2): %v", err)
+	}
+	pkt := gopacket.NewPacket(data, linkType2.LayerType(), gopacket.Default)
+	fmt.Printf("DEBUG: baseLayerType=%v decodedLayers=%v errorLayer=%v\n",
+		linkType2.LayerType(), pkt.Layers(), pkt.ErrorLayer())
 }
