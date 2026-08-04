@@ -1,4 +1,4 @@
-commit: 5394fc4ebe8d097f19397333d7ba02c6c3d98a11
+commit: 14ff441bd8fe9d88f46c5f84bdbbdd7b73e1fba2
 build: success
 vet: success
 test: failure
@@ -20,6 +20,14 @@ pktdiag
 ?   	pktdiag/internal/report	[no test files]
 ?   	pktdiag/internal/sysinfo	[no test files]
 ?   	pktdiag/internal/yamlcfg	[no test files]
+=== RUN   TestDebugMixedPackets
+DEBUG mixed: linkType=UnknownLinkType rawLinkType=20
+DEBUG mixed: packet[0] len=88 first24=08000000000000040001040602fc00000001000045000044
+DEBUG mixed: packet[1] len=72 first24=08000000000000040001000602fc00000005000045000034
+DEBUG mixed: packet[2] len=218 first24=08000000000000040001040602fc000000010000450000c6
+DEBUG mixed: packet[3] len=72 first24=08000000000000040001000602fc00000005000045000034
+DEBUG mixed: packet[4] len=53 first24=080000000000000103040006000000000000000045000021
+--- PASS: TestDebugMixedPackets (0.00s)
 === RUN   TestDeepScanMixedTraffic
     deepscan_test.go:30: TotalIPv4 = 0, ожидалось 34
     deepscan_test.go:30: Fragmented = 0, ожидалось 6
