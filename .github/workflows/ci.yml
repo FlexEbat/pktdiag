@@ -34,6 +34,19 @@ jobs:
         continue-on-error: true
         run: go build -v ./... > /tmp/build.log 2>&1
 
+      - name: Build binary
+        id: build_bin
+        if: steps.build.outcome == 'success'
+        run: go build -o pktdiag-linux-amd64 .
+
+      - name: Upload binary
+        if: steps.build_bin.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pktdiag-linux-amd64
+          path: pktdiag-linux-amd64
+          retention-days: 7
+
       - name: Vet
         id: vet
         continue-on-error: true
