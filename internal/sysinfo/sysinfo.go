@@ -25,7 +25,7 @@ type Interface struct {
 	Addresses []string `json:"addresses,omitempty"`
 }
 
-// SystemInfo — собранный снимок состояния хоста в момент захвата.
+// SystemInfo хранит собранный снимок состояния хоста в момент захвата.
 type SystemInfo struct {
 	CollectedAt time.Time   `json:"collected_at"`
 	Hostname    string      `json:"hostname"`
@@ -239,8 +239,8 @@ func dnsServers() []string {
 	return servers
 }
 
-// routesRaw возвращает таблицу маршрутизации построчно как есть (без
-// разбора hex-полей) — этого достаточно для отчёта/архива на первом этапе.
+// routesRaw возвращает таблицу маршрутизации построчно как есть, без
+// разбора hex-полей. Для отчёта и архива этого достаточно.
 func routesRaw() ([]string, error) {
 	b, err := os.ReadFile("/proc/net/route")
 	if err != nil {
@@ -256,8 +256,8 @@ func routesRaw() ([]string, error) {
 }
 
 // iptablesRules возвращает правила iptables в виде списка строк (`iptables -S`,
-// все таблицы: filter, nat, mangle). Требует root — при отсутствии прав или
-// самой утилиты просто возвращает ошибку, которая уходит в Notes.
+// все таблицы: filter, nat, mangle). Требует root. При отсутствии прав или
+// самой утилиты возвращает ошибку, которая уходит в Notes.
 func iptablesRules() ([]string, error) {
 	if _, err := exec.LookPath("iptables"); err != nil {
 		return nil, err
@@ -266,7 +266,7 @@ func iptablesRules() ([]string, error) {
 	for _, table := range []string{"filter", "nat", "mangle"} {
 		out, err := exec.Command("iptables", "-t", table, "-S").Output()
 		if err != nil {
-			continue // таблица может быть недоступна (например, nat без conntrack) — не фатально
+			continue // таблица может быть недоступна (например, nat без conntrack), это не фатально
 		}
 		lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 		for _, l := range lines {
@@ -297,7 +297,7 @@ func nftablesRuleset() ([]string, error) {
 }
 
 // conntrackSample возвращает не более limit строк текущей таблицы соединений
-// conntrack -L. Таблица может быть очень большой на нагруженном хосте,
+// conntrack -L. На нагруженном хосте эта таблица может быть большой,
 // поэтому в отчёт кладём только выборку, а не полный дамп.
 func conntrackSample(limit int) ([]string, error) {
 	if _, err := exec.LookPath("conntrack"); err != nil {
@@ -305,8 +305,8 @@ func conntrackSample(limit int) ([]string, error) {
 	}
 	out, err := exec.Command("conntrack", "-L").CombinedOutput()
 	if err != nil {
-		// conntrack -L часто пишет сводку в stderr с ненулевым кодом даже при успехе —
-		// проверяем, есть ли вообще вывод, прежде чем считать это ошибкой.
+		// conntrack -L часто пишет сводку в stderr с ненулевым кодом даже при успехе.
+		// Проверяем, есть ли вообще вывод, прежде чем считать это ошибкой.
 		if len(out) == 0 {
 			return nil, err
 		}
@@ -325,7 +325,7 @@ func conntrackSample(limit int) ([]string, error) {
 	return lines, nil
 }
 
-// sysctlKeys — сетевые параметры ядра, наиболее релевантные для диагностики
+// sysctlKeys перечисляет сетевые параметры ядра, релевантные для диагностики
 // (буферы, congestion control, обработка ICMP/фрагментации).
 var sysctlKeys = []string{
 	"net.core.rmem_max",
@@ -368,8 +368,8 @@ func sysctlSample() (map[string]string, error) {
 	return result, nil
 }
 
-// AvailableInterfaces возвращает только имена интерфейсов — используется
-// доктором и мастером выбора интерфейса при захвате.
+// AvailableInterfaces возвращает только имена интерфейсов. Их использует
+// doctor и мастер выбора интерфейса при захвате.
 func AvailableInterfaceNames() ([]string, error) {
 	ifaces, err := interfaces()
 	if err != nil {

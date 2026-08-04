@@ -1,5 +1,5 @@
-// Package report описывает структуру отчёта pktdiag и умеет
-// сериализовать её в JSON / HTML / Markdown.
+// Package report описывает структуру отчёта pktdiag и сериализует
+// её в JSON, HTML и Markdown.
 package report
 
 import (
@@ -8,15 +8,15 @@ import (
 	"pktdiag/internal/sysinfo"
 )
 
-// Meta — общая информация об отчёте.
+// Meta хранит общую информацию об отчёте.
 type Meta struct {
 	GeneratedAt    time.Time `json:"generated_at"`
 	PktdiagVersion string    `json:"pktdiag_version"`
 	Source         string    `json:"source"`
 }
 
-// CaptureInfo — параметры и итоги захвата (пусто, если отчёт построен по
-// уже существующему pcap без сопровождающих метаданных).
+// CaptureInfo хранит параметры и итоги захвата. Пусто, если отчёт
+// построен по уже существующему pcap без сопровождающих метаданных.
 type CaptureInfo struct {
 	Interface         string    `json:"interface,omitempty"`
 	Filter            string    `json:"filter,omitempty"`
@@ -27,7 +27,7 @@ type CaptureInfo struct {
 	PacketsDropped    int64     `json:"packets_dropped_by_kernel"`
 }
 
-// Summary — верхнеуровневые цифры по трафику.
+// Summary хранит верхнеуровневые цифры по трафику.
 type Summary struct {
 	Packets     int64   `json:"packets"`
 	DurationSec float64 `json:"duration_sec"`
@@ -36,7 +36,7 @@ type Summary struct {
 	Bytes       int64   `json:"bytes,omitempty"`
 }
 
-// Protocols — количество пакетов по основным протоколам.
+// Protocols хранит количество пакетов по основным протоколам.
 type Protocols struct {
 	TCP  int `json:"tcp"`
 	UDP  int `json:"udp"`
@@ -46,7 +46,7 @@ type Protocols struct {
 	HTTP int `json:"http"`
 }
 
-// RTTStats — метрики задержки на основе TCP ACK RTT.
+// RTTStats хранит метрики задержки на основе TCP ACK RTT.
 type RTTStats struct {
 	Samples int     `json:"samples"`
 	AvgMs   float64 `json:"avg_ms"`
@@ -54,7 +54,17 @@ type RTTStats struct {
 	MaxMs   float64 `json:"max_ms"`
 }
 
-// TCPStats — метрики качества TCP-потоков.
+// DeepStats хранит метрики построчного разбора pcap через gopacket.
+// tshark считает эти метрики только по display-filter, DeepStats
+// заполняется прямым чтением IP/TCP/ICMP-заголовков.
+type DeepStats struct {
+	Fragmented int `json:"fragmented"`  // IPv4 с MF=1 или fragment offset != 0
+	SynOnly    int `json:"syn_only"`    // TCP SYN без ACK
+	SynAck     int `json:"syn_ack"`     // TCP SYN+ACK, ответ на попытку
+	ICMPErrors int `json:"icmp_errors"` // ICMPv4 с кодом ошибки
+}
+
+// TCPStats хранит метрики качества TCP-потоков.
 type TCPStats struct {
 	Retransmissions   int     `json:"retransmissions"`
 	RetransmissionPct float64 `json:"retransmission_pct"`
@@ -64,7 +74,7 @@ type TCPStats struct {
 	OutOfOrder        int     `json:"out_of_order"`
 }
 
-// DNSStats — метрики качества DNS.
+// DNSStats хранит метрики качества DNS.
 type DNSStats struct {
 	Queries        int     `json:"queries"`
 	Responses      int     `json:"responses"`
@@ -73,22 +83,22 @@ type DNSStats struct {
 	LikelyTimeouts int     `json:"likely_timeouts"` // запросы без ответа
 }
 
-// Anomaly — одна обнаруженная аномалия/предупреждение.
+// Anomaly хранит одну обнаруженную аномалию.
 type Anomaly struct {
-	ID       string `json:"id"`       // соответствует explainx.Entry.ID
+	ID       string `json:"id"`       // совпадает с explainx.Entry.ID
 	Severity string `json:"severity"` // ok | warning | critical
 	Title    string `json:"title"`
 	Value    string `json:"value"`
 	Message  string `json:"message"`
 }
 
-// HealthScore — сводная оценка качества сети.
+// HealthScore хранит сводную оценку качества сети.
 type HealthScore struct {
 	Total      int            `json:"total"`
 	Components map[string]int `json:"components"`
 }
 
-// Report — полный отчёт pktdiag.
+// Report хранит полный отчёт pktdiag.
 type Report struct {
 	Meta      Meta                `json:"meta"`
 	Capture   *CaptureInfo        `json:"capture,omitempty"`
@@ -96,6 +106,7 @@ type Report struct {
 	Protocols Protocols           `json:"protocols"`
 	TCP       TCPStats            `json:"tcp"`
 	RTT       RTTStats            `json:"rtt"`
+	Deep      DeepStats           `json:"deep"`
 	DNS       DNSStats            `json:"dns"`
 	Anomalies []Anomaly           `json:"anomalies"`
 	Health    HealthScore         `json:"health_score"`

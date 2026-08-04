@@ -19,8 +19,8 @@ import (
 
 func runCapture(args []string) error {
 	// Конфиг грузим до определения флагов, чтобы его значения стали
-	// дефолтами — тогда явные флаги командной строки по-прежнему их
-	// переопределяют (см. pktdiag.example.yaml).
+	// дефолтами. Явные флаги командной строки переопределяют их
+	// (см. pktdiag.example.yaml).
 	cfgPath := extractConfigPath(args)
 	var cfg yamlcfg.Config
 	if cfgPath != "" {
@@ -33,16 +33,16 @@ func runCapture(args []string) error {
 	}
 
 	fs := flag.NewFlagSet("capture", flag.ContinueOnError)
-	_ = fs.String("config", "", "путь к YAML-конфигу (по умолчанию — ./pktdiag.yaml, если существует)")
-	iface := fs.String("iface", cfg.Get("capture", "iface", ""), "сетевой интерфейс (по умолчанию — автовыбор, не lo)")
+	_ = fs.String("config", "", "путь к YAML-конфигу, по умолчанию ./pktdiag.yaml, если существует")
+	iface := fs.String("iface", cfg.Get("capture", "iface", ""), "сетевой интерфейс, по умолчанию автовыбор без lo")
 	filter := fs.String("filter", cfg.Get("capture", "filter", ""), `BPF-фильтр tcpdump, например "tcp port 443"`)
-	duration := fs.String("duration", cfg.Get("capture", "duration", "30s"), `длительность захвата, например "30s", "5m"; "0" — до Ctrl+C`)
-	output := fs.String("output", cfg.Get("capture", "output", ""), "каталог для результатов (по умолчанию — ./pktdiag-capture-<timestamp>)")
+	duration := fs.String("duration", cfg.Get("capture", "duration", "30s"), `длительность захвата, например "30s", "5m". "0" значит до Ctrl+C`)
+	output := fs.String("output", cfg.Get("capture", "output", ""), "каталог для результатов, по умолчанию ./pktdiag-capture-<timestamp>")
 	format := fs.String("format", cfg.Get("report", "format", "html,json"), "форматы отчёта через запятую: html,json,md,pdf")
 	noArchive := fs.Bool("no-archive", !cfg.GetBool("report", "archive", true), "не собирать финальный tar.zst архив")
-	ring := fs.Int("ring", cfg.GetInt("capture", "ring", 0), "включить кольцевой буфер: количество файлов (0 — выключено)")
+	ring := fs.Int("ring", cfg.GetInt("capture", "ring", 0), "включить кольцевой буфер: количество файлов, 0 выключает")
 	ringSize := fs.Int("ring-size", cfg.GetInt("capture", "ring_size", 100), "размер одного файла кольцевого буфера, МБ")
-	snaplen := fs.Int("snaplen", cfg.GetInt("capture", "snaplen", 0), "snapshot length tcpdump (0 — без ограничения, -s0)")
+	snaplen := fs.Int("snaplen", cfg.GetInt("capture", "snaplen", 0), "snapshot length tcpdump, 0 значит без ограничения (-s0)")
 	force := fs.Bool("force", false, "продолжить, даже если doctor нашёл проблемы (✘)")
 	if err := fs.Parse(reorderArgsForFlags(fs, args)); err != nil {
 		return err
@@ -69,7 +69,7 @@ func runCapture(args []string) error {
 		} else {
 			selectedIface = pickDefaultInterface(names)
 		}
-		fmt.Printf("Интерфейс не указан — выбран автоматически: %s\n", selectedIface)
+		fmt.Printf("Интерфейс не указан, выбран автоматически: %s\n", selectedIface)
 	}
 
 	// 3. Длительность
@@ -126,9 +126,9 @@ func runCapture(args []string) error {
 			fmt.Fprintln(os.Stderr, "предупреждение: не удалось найти файлы кольцевого буфера:", err)
 		}
 		if len(ringFiles) == 0 {
-			fmt.Println("Кольцевой буфер включён, но файлы с числовым суффиксом не найдены — анализирую как есть.")
+			fmt.Println("Кольцевой буфер включён, но файлы с числовым суффиксом не найдены. Анализирую как есть.")
 		} else {
-			fmt.Printf("Кольцевой буфер: найдено %d файлов (%v) — сливаю через mergecap для анализа.\n", len(ringFiles), ringFiles)
+			fmt.Printf("Кольцевой буфер: найдено %d файлов (%v), сливаю через mergecap для анализа.\n", len(ringFiles), ringFiles)
 			merged := filepath.Join(outDir, "capture.merged.pcapng")
 			if err := capture.MergeRingFiles(ringFiles, merged); err != nil {
 				fmt.Fprintln(os.Stderr, "предупреждение: слияние файлов кольца не удалось, анализирую только базовый файл:", err)
@@ -155,6 +155,7 @@ func runCapture(args []string) error {
 		return fmt.Errorf("анализ не удался: %w", err)
 	}
 	rep.System = &sysInfo
+	analyze.AddSystemChecks(&rep)
 
 	if err := writeReportFiles(rep, outDir, parseFormats(*format)); err != nil {
 		return err

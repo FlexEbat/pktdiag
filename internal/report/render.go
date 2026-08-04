@@ -42,7 +42,7 @@ func WriteHTML(r Report, path string) error {
 // уже готовый htmlPath, если он не пуст), затем конвертирует его в PDF.
 func WritePDF(r Report, pdfPath string) error {
 	if _, err := exec.LookPath("wkhtmltopdf"); err != nil {
-		return fmt.Errorf("wkhtmltopdf не найден в PATH — установите пакет wkhtmltopdf для экспорта в PDF")
+		return fmt.Errorf("wkhtmltopdf не найден в PATH, установите пакет wkhtmltopdf для экспорта в PDF")
 	}
 
 	tmpHTML, err := os.CreateTemp("", "pktdiag-report-*.html")

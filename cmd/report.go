@@ -13,7 +13,7 @@ import (
 func runReport(args []string) error {
 	fs := flag.NewFlagSet("report", flag.ContinueOnError)
 	format := fs.String("format", "html,json", "форматы отчёта через запятую: html,json,md,pdf")
-	output := fs.String("output", "", "каталог для сохранения отчёта (по умолчанию — рядом с источником)")
+	output := fs.String("output", "", "каталог для сохранения отчёта, по умолчанию рядом с источником")
 	if err := fs.Parse(reorderArgsForFlags(fs, args)); err != nil {
 		return err
 	}
@@ -33,8 +33,7 @@ func runReport(args []string) error {
 		return err
 	}
 	rep.System = rs.System
-
-	outDir := *output
+	analyze.AddSystemChecks(&rep)
 	if outDir == "" {
 		outDir = filepath.Dir(rs.PcapPath)
 	}

@@ -12,7 +12,7 @@ import (
 	"pktdiag/internal/sysinfo"
 )
 
-// resolvedSource — результат разбора аргумента-источника для report/analyze.
+// resolvedSource хранит результат разбора аргумента-источника для report/analyze.
 type resolvedSource struct {
 	PcapPath string
 	System   *sysinfo.SystemInfo // nil, если metadata.json не найден
@@ -48,7 +48,7 @@ func resolveSource(path string) (resolvedSource, error) {
 		}
 		if _, err := exec.LookPath("tar"); err != nil {
 			os.RemoveAll(tmpDir)
-			return res, fmt.Errorf("tar не найден в PATH — не могу распаковать бандл")
+			return res, fmt.Errorf("tar не найден в PATH, не могу распаковать бандл")
 		}
 		cmd := exec.Command("tar", "--zstd", "-xf", path, "-C", tmpDir)
 		if out, err := cmd.CombinedOutput(); err != nil {
@@ -131,7 +131,7 @@ func reorderArgsForFlags(fs *flag.FlagSet, args []string) []string {
 		if len(a) > 0 && a[0] == '-' {
 			name := strings.TrimLeft(a, "-")
 			if eq := strings.IndexByte(name, '='); eq >= 0 {
-				// значение уже приклеено через "=" — отдельный токен не нужен
+				// значение уже приклеено через "=", отдельный токен не нужен
 				flagArgs = append(flagArgs, a)
 				continue
 			}
@@ -150,7 +150,7 @@ func reorderArgsForFlags(fs *flag.FlagSet, args []string) []string {
 
 // extractConfigPath ищет "--config <path>"/"--config=<path>" в сырых
 // аргументах (до основного разбора флагов) и возвращает путь к YAML-конфигу.
-// Если флаг не передан, но в текущем каталоге есть pktdiag.yaml — используется
+// Если флаг не передан, но в текущем каталоге есть pktdiag.yaml, используется
 // он; иначе конфиг считается отсутствующим (пустая строка).
 func extractConfigPath(args []string) string {
 	for i, a := range args {

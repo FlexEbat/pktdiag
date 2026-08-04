@@ -23,11 +23,9 @@ jobs:
           go-version: '1.22'
           cache: true
 
-      # go.sum can't be produced in the sandboxed environment used during
-      # initial development (network egress blocks golang.org/x/* module
-      # resolution), so it may be missing or stale. `go mod tidy` fetches
-      # everything and regenerates it here, where normal internet access
-      # is available.
+      # Локальная песочница блокирует golang.org/x/*, поэтому go.sum
+      # там сгенерировать нельзя. go mod tidy пересобирает его здесь,
+      # где сетевой доступ открыт.
       - name: go mod tidy
         run: go mod tidy
 
@@ -38,7 +36,8 @@ jobs:
         run: go vet ./...
 
       - name: Test
-        run: go test -v ./... || true # no tests yet; don't fail CI on "no test files"
+        # go test возвращает ошибку "no test files", если тестов ещё нет.
+        run: go test -v ./... || true
 
       - name: Commit go.sum/go.mod if changed
         if: github.event_name == 'push'

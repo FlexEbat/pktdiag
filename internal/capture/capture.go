@@ -16,24 +16,24 @@ import (
 	"time"
 )
 
-// Options — параметры одного захвата.
+// Options хранит параметры одного захвата.
 type Options struct {
 	Interface  string        // например "eth0" или "any"
 	Filter     string        // BPF-фильтр, например "tcp port 443"; может быть пустым
-	Duration   time.Duration // 0 — захват идёт, пока процесс не получит SIGINT снаружи
+	Duration   time.Duration // 0 значит: захват идёт, пока не придёт SIGINT снаружи
 	OutputPcap string        // путь к файлу для записи (.pcapng/.pcap)
-	Ring       RingOptions   // опционально — кольцевой буфер
-	Snaplen    int           // 0 — без ограничения (tcpdump -s0)
+	Ring       RingOptions   // кольцевой буфер, опционально
+	Snaplen    int           // 0 значит без ограничения (tcpdump -s0)
 }
 
-// RingOptions — параметры кольцевого буфера (UC-04 из ТЗ).
+// RingOptions хранит параметры кольцевого буфера (UC-04 из ТЗ).
 type RingOptions struct {
 	Enabled  bool
 	FileMB   int // -C, размер одного файла в мегабайтах (десятичных, как у tcpdump)
 	NumFiles int // -W, количество файлов в кольце
 }
 
-// Result — итог одного захвата.
+// Result хранит итог одного захвата.
 type Result struct {
 	StartedAt               time.Time
 	EndedAt                 time.Time
@@ -119,7 +119,7 @@ func Run(opts Options) (Result, error) {
 	args = append(args, "-w", opts.OutputPcap)
 
 	if strings.TrimSpace(opts.Filter) != "" {
-		// Простое разбиение по пробелам — покрывает типовые фильтры
+		// Простое разбиение по пробелам покрывает типовые фильтры
 		// вида "tcp port 443", "host 10.0.0.1", "udp or icmp".
 		args = append(args, strings.Fields(opts.Filter)...)
 	}
@@ -152,7 +152,7 @@ func Run(opts Options) (Result, error) {
 		defer timer.Stop()
 	}
 	// Если Duration == 0, ожидаем, что пользователь сам пришлёт SIGINT
-	// (Ctrl+C в терминале) — tcpdump в той же группе процессов получит
+	// (Ctrl+C в терминале): tcpdump в той же группе процессов получит
 	// сигнал напрямую от терминала.
 
 	waitErr := cmd.Wait()
@@ -176,8 +176,8 @@ func Run(opts Options) (Result, error) {
 		}
 	}
 
-	// tcpdump возвращает ненулевой код при обычном завершении по SIGINT —
-	// это ожидаемо и не считается ошибкой, если мы получили сводку пакетов.
+	// tcpdump возвращает ненулевой код при обычном завершении по SIGINT.
+	// Это ожидаемо и не считается ошибкой, если мы получили сводку пакетов.
 	if waitErr != nil && res.PacketsCaptured == 0 && res.PacketsReceivedByFilter == 0 {
 		return res, fmt.Errorf("tcpdump завершился с ошибкой: %w\n%s", waitErr, res.RawStderr)
 	}

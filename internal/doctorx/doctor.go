@@ -1,5 +1,5 @@
-// Package doctorx реализует проверки окружения перед захватом трафика,
-// а также опциональную автоустановку недостающих системных пакетов.
+// Package doctorx проверяет окружение перед захватом трафика и
+// умеет автоматически ставить недостающие системные пакеты.
 package doctorx
 
 import (
@@ -13,7 +13,7 @@ import (
 	"pktdiag/internal/sysinfo"
 )
 
-// Status — результат одной проверки.
+// Status хранит результат одной проверки.
 type Status int
 
 const (
@@ -33,17 +33,17 @@ func (s Status) Symbol() string {
 	}
 }
 
-// Check — одна строка отчёта doctor.
+// Check хранит одну строку отчёта doctor.
 type Check struct {
 	Name   string `json:"name"`
 	Status Status `json:"status"`
 	Detail string `json:"detail,omitempty"`
-	// Package — имя apt-пакета, устраняющего проблему (пусто, если
-	// проверка не про отсутствующий бинарник — например, права или диск).
+	// Package хранит имя apt-пакета, который устраняет проблему.
+	// Пусто, если проверка касается прав или диска, а не бинарника.
 	Package string `json:"package,omitempty"`
 }
 
-// Report — сводный отчёт doctor.
+// Report хранит сводный отчёт doctor.
 type Report struct {
 	Checks []Check `json:"checks"`
 }
@@ -77,7 +77,7 @@ func binCheck(name string, required bool, pkg string) Check {
 		detail := fmt.Sprintf("%s не найден в PATH (необязателен, пакет: %s)", name, pkg)
 		if required {
 			st = Fail
-			detail = fmt.Sprintf("%s не найден в PATH — установите пакет %s", name, pkg)
+			detail = fmt.Sprintf("%s не найден в PATH, установите пакет %s", name, pkg)
 		}
 		return Check{Name: name, Status: st, Detail: detail, Package: pkg}
 	}
@@ -88,10 +88,9 @@ func permissionCheck() Check {
 	if os.Geteuid() == 0 {
 		return Check{Name: "права", Status: OK, Detail: "запущено от root"}
 	}
-	// Без root захват возможен только при наличии CAP_NET_RAW/CAP_NET_ADMIN
-	// у tcpdump/dumpcap; мы не можем достоверно проверить capabilities без
-	// дополнительных утилит, поэтому предупреждаем.
-	return Check{Name: "права", Status: Warn, Detail: "не root — захват может не сработать без CAP_NET_RAW у tcpdump/dumpcap"}
+	// Без root capabilities CAP_NET_RAW/CAP_NET_ADMIN проверить нельзя без
+	// дополнительных утилит, поэтому предупреждаем вместо точного вердикта.
+	return Check{Name: "права", Status: Warn, Detail: "захват без root требует CAP_NET_RAW у tcpdump/dumpcap"}
 }
 
 func diskSpaceCheck(path string) Check {
@@ -102,7 +101,7 @@ func diskSpaceCheck(path string) Check {
 	freeBytes := stat.Bavail * uint64(stat.Bsize)
 	freeMB := freeBytes / (1024 * 1024)
 	if freeMB < 200 {
-		return Check{Name: "свободное место", Status: Fail, Detail: fmt.Sprintf("всего %d MB свободно — мало для захвата", freeMB)}
+		return Check{Name: "свободное место", Status: Fail, Detail: fmt.Sprintf("свободно %d MB, недостаточно для захвата", freeMB)}
 	}
 	if freeMB < 1024 {
 		return Check{Name: "свободное место", Status: Warn, Detail: fmt.Sprintf("%d MB свободно", freeMB)}
@@ -121,7 +120,7 @@ func interfacesCheck() Check {
 	return Check{Name: "интерфейсы", Status: OK, Detail: fmt.Sprintf("%v", names)}
 }
 
-// AllOK возвращает true, если нет проваленных проверок (Warn допустим).
+// AllOK возвращает true, если ни одна проверка не завершилась Fail (Warn допустим).
 func (r Report) AllOK() bool {
 	for _, c := range r.Checks {
 		if c.Status == Fail {
@@ -131,8 +130,8 @@ func (r Report) AllOK() bool {
 	return true
 }
 
-// MissingPackages возвращает отсортированный список уникальных apt-пакетов,
-// закрывающих все непройденные (Fail и Warn) проверки бинарников.
+// MissingPackages возвращает отсортированный список уникальных apt-пакетов
+// для всех непройденных проверок бинарников (Fail и Warn).
 func (r Report) MissingPackages() []string {
 	set := map[string]bool{}
 	for _, c := range r.Checks {
@@ -148,10 +147,9 @@ func (r Report) MissingPackages() []string {
 	return pkgs
 }
 
-// PackageManager — определяет доступный на хосте пакетный менеджер.
-// Автоустановка (Install) сейчас поддерживает только apt; для остальных
-// возвращается имя менеджера, чтобы ManualInstallHint могла подсказать
-// правильную команду вручную.
+// PackageManager определяет доступный на хосте пакетный менеджер.
+// Install сейчас умеет ставить пакеты только через apt; для остальных
+// менеджеров ManualInstallHint строит команду для ручного запуска.
 func PackageManager() string {
 	for _, pm := range []string{"apt-get", "dnf", "yum", "pacman", "apk", "brew"} {
 		if _, err := exec.LookPath(pm); err == nil {
@@ -161,9 +159,9 @@ func PackageManager() string {
 	return ""
 }
 
-// ManualInstallHint формирует команду для ручной установки под
-// определённый на хосте пакетный менеджер (или общую подсказку, если
-// определить не удалось).
+// ManualInstallHint строит команду для ручной установки под обнаруженный
+// на хосте пакетный менеджер. Если определить менеджер не удалось,
+// возвращает общую подсказку.
 func ManualInstallHint(packages []string) string {
 	if len(packages) == 0 {
 		return ""
@@ -187,35 +185,33 @@ func ManualInstallHint(packages []string) string {
 	}
 }
 
-// Install пытается автоматически установить недостающие пакеты.
-// Поддерживается только apt (Ubuntu/Debian) — на остальных системах
-// возвращается ошибка с рекомендацией использовать ManualInstallHint.
-// Требует root. Вывод apt транслируется в переданный io.Writer построчно
-// через onOutput (может быть nil).
+// Install ставит недостающие пакеты автоматически. Поддерживает только
+// apt (Ubuntu/Debian) и требует root; на других системах возвращает
+// ошибку с рекомендацией использовать ManualInstallHint. Вывод apt
+// передаётся построчно через onOutput (может быть nil).
 func Install(packages []string, onOutput func(line string)) error {
 	if len(packages) == 0 {
 		return nil
 	}
 	if os.Geteuid() != 0 {
-		return fmt.Errorf("автоустановка требует root (запустите с sudo)")
+		return fmt.Errorf("автоустановка требует root, запустите с sudo")
 	}
 	pm := PackageManager()
 	if pm != "apt-get" {
 		hint := ManualInstallHint(packages)
 		if pm == "" {
-			return fmt.Errorf("не удалось определить пакетный менеджер; установите вручную: %s", strings.Join(packages, " "))
+			return fmt.Errorf("не удалось определить пакетный менеджер, установите вручную: %s", strings.Join(packages, " "))
 		}
-		return fmt.Errorf("автоустановка пока поддерживает только apt (обнаружен %s); установите вручную:\n  %s", pm, hint)
+		return fmt.Errorf("автоустановка пока поддерживает только apt, обнаружен %s, установите вручную:\n  %s", pm, hint)
 	}
 
-	// apt-get update может завершиться с ошибкой из-за одного недоступного
-	// стороннего репозитория (например, добавленного вручную PPA), даже
-	// если основные репозитории Ubuntu/Debian обновились нормально. Не
-	// прерываемся на этом — пробуем install; если нужных пакетов всё
-	// равно нет, install сам вернёт понятную ошибку.
+	// Сторонний репозиторий (например, ручной PPA) может быть недоступен
+	// и провалить весь apt-get update, даже когда основные репозитории
+	// Ubuntu/Debian обновились нормально. Install продолжает установку:
+	// если нужного пакета всё равно нет, apt-get install вернёт свою ошибку.
 	if err := runStreaming(onOutput, "apt-get", "update", "-y"); err != nil {
 		if onOutput != nil {
-			onOutput(fmt.Sprintf("предупреждение: apt-get update завершился с ошибкой (%v) — пробую установить пакеты всё равно", err))
+			onOutput(fmt.Sprintf("предупреждение: apt-get update завершился с ошибкой (%v), пробую установить пакеты всё равно", err))
 		}
 	}
 
@@ -233,7 +229,8 @@ func runStreaming(onOutput func(string), name string, args ...string) error {
 	if err != nil {
 		return err
 	}
-	cmd.Stderr = cmd.Stdout // apt пишет прогресс в stderr — сливаем в один поток
+	// apt пишет прогресс установки в stderr, оба потока идут в один Reader.
+	cmd.Stderr = cmd.Stdout
 	if err := cmd.Start(); err != nil {
 		return err
 	}
