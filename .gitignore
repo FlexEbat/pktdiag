@@ -3,3 +3,4 @@
 *.tar.zst
 *.pcapng
 *.pcap
+!internal/analyze/testdata/*.pcapng

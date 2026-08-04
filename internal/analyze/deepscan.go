@@ -48,10 +48,11 @@ func DeepScan(pcapPath string) (DeepScanResult, error) {
 	}
 	defer f.Close()
 
-	reader, err := newPacketReader(f)
+	reader, linkType, err := newPacketReader(f)
 	if err != nil {
 		return res, err
 	}
+	baseLayer := linkType.LayerType()
 
 	for {
 		data, _, err := reader.ReadPacketData()
@@ -62,7 +63,7 @@ func DeepScan(pcapPath string) (DeepScanResult, error) {
 			return res, fmt.Errorf("чтение пакета: %w", err)
 		}
 
-		packet := gopacket.NewPacket(data, layers.LayerTypeEthernet, gopacket.NoCopy)
+		packet := gopacket.NewPacket(data, baseLayer, gopacket.NoCopy)
 
 		if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
 			ip, ok := ipLayer.(*layers.IPv4)
@@ -100,14 +101,17 @@ func DeepScan(pcapPath string) (DeepScanResult, error) {
 }
 
 // newPacketReader определяет формат файла (pcap классический или pcapng)
-// по магическим байтам и возвращает подходящий gopacket-ридер.
-func newPacketReader(f *os.File) (packetDataReader, error) {
+// по магическим байтам и возвращает подходящий gopacket-ридер вместе с
+// его link-layer типом. tcpdump на интерфейсе "any" пишет Linux cooked
+// capture (LINUX_SLL2), а не Ethernet, поэтому базовый слой для
+// gopacket.NewPacket нельзя жёстко задавать: берём его из заголовка файла.
+func newPacketReader(f *os.File) (packetDataReader, layers.LinkType, error) {
 	magic := make([]byte, 4)
 	if _, err := f.Read(magic); err != nil {
-		return nil, fmt.Errorf("чтение магических байт: %w", err)
+		return nil, 0, fmt.Errorf("чтение магических байт: %w", err)
 	}
 	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// Формат pcapng начинается с блока 0x0A0D0D0A.
@@ -115,16 +119,20 @@ func newPacketReader(f *os.File) (packetDataReader, error) {
 	if isNg {
 		r, err := pcapgo.NewNgReader(f, pcapgo.DefaultNgReaderOptions)
 		if err != nil {
-			return nil, fmt.Errorf("pcapng reader: %w", err)
+			return nil, 0, fmt.Errorf("pcapng reader: %w", err)
 		}
-		return r, nil
+		iface, err := r.Interface(0)
+		if err != nil {
+			return nil, 0, fmt.Errorf("pcapng: интерфейс захвата: %w", err)
+		}
+		return r, iface.LinkType, nil
 	}
 
 	r, err := pcapgo.NewReader(f)
 	if err != nil {
-		return nil, fmt.Errorf("pcap reader: %w", err)
+		return nil, 0, fmt.Errorf("pcap reader: %w", err)
 	}
-	return r, nil
+	return r, r.LinkType(), nil
 }
 
 // packetDataReader объединяет pcapgo.Reader и pcapgo.NgReader: оба типа
