@@ -30,10 +30,28 @@ jobs:
         run: go mod tidy
 
       - name: Build
-        run: go build -v ./...
+        run: |
+          set -o pipefail
+          go build -v ./... 2>&1 | tee /tmp/build.log
+          status=$?
+          if [ $status -ne 0 ]; then
+            while IFS= read -r line; do
+              echo "::error::$line"
+            done < /tmp/build.log
+            exit $status
+          fi
 
       - name: Vet
-        run: go vet ./...
+        run: |
+          set -o pipefail
+          go vet ./... 2>&1 | tee /tmp/vet.log
+          status=$?
+          if [ $status -ne 0 ]; then
+            while IFS= read -r line; do
+              echo "::error::$line"
+            done < /tmp/vet.log
+            exit $status
+          fi
 
       - name: Test
         # go test возвращает ошибку "no test files", если тестов ещё нет.
