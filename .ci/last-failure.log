@@ -1,4 +1,4 @@
-commit: f403ecc822a70c379ecfe6d22f994432118a8b2a
+commit: 5394fc4ebe8d097f19397333d7ba02c6c3d98a11
 build: success
 vet: success
 test: failure
@@ -20,11 +20,6 @@ pktdiag
 ?   	pktdiag/internal/report	[no test files]
 ?   	pktdiag/internal/sysinfo	[no test files]
 ?   	pktdiag/internal/yamlcfg	[no test files]
-=== RUN   TestDebugPacketReader
-DEBUG: linkType=Ethernet rawLinkType=1
-DEBUG: прочитано пакетов=25 firstPacketLen=66
-DEBUG: baseLayerType=Unknown decodedLayers=[Packet decoding error: Layer type not currently supported] errorLayer=Packet decoding error: Layer type not currently supported
---- PASS: TestDebugPacketReader (0.00s)
 === RUN   TestDeepScanMixedTraffic
     deepscan_test.go:30: TotalIPv4 = 0, ожидалось 34
     deepscan_test.go:30: Fragmented = 0, ожидалось 6
@@ -33,10 +28,7 @@ DEBUG: baseLayerType=Unknown decodedLayers=[Packet decoding error: Layer type no
     deepscan_test.go:30: ICMPErrors = 0, ожидалось 1
 --- FAIL: TestDeepScanMixedTraffic (0.00s)
 === RUN   TestDeepScanEthernetTraffic
-    deepscan_test.go:57: TotalIPv4 = 0, ожидалось 25
-    deepscan_test.go:57: SynOnly = 0, ожидалось 1
-    deepscan_test.go:57: SynAck = 0, ожидалось 1
---- FAIL: TestDeepScanEthernetTraffic (0.00s)
+--- PASS: TestDeepScanEthernetTraffic (0.00s)
 FAIL
 FAIL	pktdiag/internal/analyze	0.006s
 FAIL
