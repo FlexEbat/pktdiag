@@ -1,4 +1,4 @@
-commit: 1210331a9b5141f143134f359711d94bb59a5da6
+commit: 578f0f573674f0c1d8995f2386e7ef8289785fc7
 build: success
 vet: success
 test: failure
@@ -27,6 +27,11 @@ pktdiag
     deepscan_test.go:30: SynAck = 0, ожидалось 1
     deepscan_test.go:30: ICMPErrors = 0, ожидалось 1
 --- FAIL: TestDeepScanMixedTraffic (0.00s)
+=== RUN   TestDeepScanEthernetTraffic
+    deepscan_test.go:57: TotalIPv4 = 0, ожидалось 25
+    deepscan_test.go:57: SynOnly = 0, ожидалось 1
+    deepscan_test.go:57: SynAck = 0, ожидалось 1
+--- FAIL: TestDeepScanEthernetTraffic (0.00s)
 FAIL
 FAIL	pktdiag/internal/analyze	0.006s
 FAIL
