@@ -1,0 +1,129 @@
+commit: c7e2b925235a9bee8a9ca6993c406af4d05155a1
+build: failure
+vet: failure
+test: failure
+
+=== build ===
+internal/goarch
+internal/unsafeheader
+internal/cpu
+internal/abi
+internal/bytealg
+internal/chacha8rand
+internal/coverage/rtcov
+internal/godebugs
+internal/goexperiment
+internal/goos
+runtime/internal/atomic
+runtime/internal/math
+runtime/internal/sys
+runtime/internal/syscall
+internal/itoa
+math/bits
+runtime
+math
+unicode/utf8
+internal/race
+sync/atomic
+unicode
+cmp
+slices
+encoding
+unicode/utf16
+internal/nettrace
+internal/reflectlite
+sync
+internal/testlog
+internal/bisect
+errors
+sort
+strconv
+io
+reflect
+internal/oserror
+syscall
+internal/syscall/unix
+time
+internal/fmtsort
+internal/poll
+internal/safefilepath
+internal/syscall/execenv
+path
+io/fs
+bytes
+os
+strings
+bufio
+fmt
+encoding/binary
+encoding/base64
+flag
+encoding/json
+context
+internal/godebug
+path/filepath
+os/exec
+encoding/hex
+vendor/golang.org/x/net/dns/dnsmessage
+internal/singleflight
+internal/intern
+net/netip
+runtime/cgo
+runtime/debug
+hash
+hash/crc32
+compress/flate
+compress/gzip
+golang.org/x/net/bpf
+embed
+pktdiag/internal/explainx
+html
+regexp/syntax
+regexp
+net/url
+text/template/parse
+text/template
+html/template
+pktdiag/internal/sysinfo
+pktdiag/internal/report
+pktdiag/internal/archive
+pktdiag/internal/capture
+pktdiag/internal/doctorx
+net
+pktdiag/internal/yamlcfg
+github.com/google/gopacket
+golang.org/x/sys/unix
+github.com/google/gopacket/layers
+github.com/google/gopacket/pcapgo
+pktdiag/internal/analyze
+pktdiag/cmd
+# pktdiag/cmd
+cmd/report.go:16:2: output declared and not used
+cmd/report.go:37:5: undefined: outDir
+cmd/report.go:38:3: undefined: outDir
+cmd/report.go:41:31: undefined: outDir
+
+=== vet ===
+# pktdiag/cmd
+cmd/report.go:16:2: output declared and not used
+cmd/report.go:37:5: undefined: outDir
+cmd/report.go:38:3: undefined: outDir
+cmd/report.go:41:31: undefined: outDir
+
+=== test ===
+# pktdiag/cmd
+cmd/report.go:16:2: output declared and not used
+cmd/report.go:37:5: undefined: outDir
+cmd/report.go:38:3: undefined: outDir
+cmd/report.go:41:31: undefined: outDir
+FAIL	pktdiag [build failed]
+FAIL	pktdiag/cmd [build failed]
+?   	pktdiag/internal/analyze	[no test files]
+?   	pktdiag/internal/archive	[no test files]
+?   	pktdiag/internal/capture	[no test files]
+?   	pktdiag/internal/doctorx	[no test files]
+?   	pktdiag/internal/explainx	[no test files]
+?   	pktdiag/internal/report	[no test files]
+?   	pktdiag/internal/sysinfo	[no test files]
+?   	pktdiag/internal/yamlcfg	[no test files]
+FAIL
