@@ -37,16 +37,25 @@ var icmpErrorTypes = map[uint8]bool{
 	12: true, // Parameter Problem
 }
 
-// Числовые коды link-layer типов (совпадают с DLT_* из libpcap).
-// dltLinuxSLL/dltLinuxSLL2 — Linux cooked capture, использует tcpdump
-// на интерфейсе any. layers.LinkType.LayerType() в gopacket v1.1.19
-// возвращает LayerTypeUnknown даже для Ethernet (проверено тестом
-// TestDebugPacketReader на реальном захвате), поэтому здесь явный
-// switch по числовому коду вместо этого метода.
+// Числовые коды link-layer типов. dltLinuxSLL/dltLinuxSLL2 — Linux
+// cooked capture, использует tcpdump на интерфейсе any.
+//
+// layers.LinkType.LayerType() в gopacket v1.1.19 возвращает
+// LayerTypeUnknown даже для Ethernet (проверено TestDebugPacketReader),
+// поэтому здесь явный switch по числовому коду вместо этого метода.
+//
+// dltLinuxSLL2Alt=20 — тот код, который в этой версии gopacket реально
+// возвращает pcapgo.NgReader для файла, записанного tcpdump на
+// интерфейсе any (проверено TestDebugMixedPackets: hex-дамп первых
+// байт пакета точно соответствует 20-байтному заголовку SLL2 —
+// protocol_type=0x0800, после заголовка сразу валидный IPv4: 0x45...).
+// Официальный номер LINKTYPE_LINUX_SLL2 в реестре tcpdump.org — 276,
+// но именно эта версия gopacket/pcapgo репортит 20. Держим оба кода.
 const (
-	dltEthernet  = 1
-	dltLinuxSLL  = 113 // заголовок 16 байт, protocol type в последних 2 байтах
-	dltLinuxSLL2 = 276 // заголовок 20 байт, protocol type в первых 2 байтах
+	dltEthernet     = 1
+	dltLinuxSLL     = 113 // заголовок 16 байт, protocol type в последних 2 байтах
+	dltLinuxSLL2    = 276 // официальный номер LINKTYPE_LINUX_SLL2
+	dltLinuxSLL2Alt = 20  // номер, который реально возвращает эта версия gopacket
 )
 
 const ethertypeIPv4 = 0x0800
@@ -59,7 +68,7 @@ func startLayer(rawLinkType int, data []byte) (payload []byte, layer gopacket.La
 	switch rawLinkType {
 	case dltEthernet:
 		return data, layers.LayerTypeEthernet, true
-	case dltLinuxSLL2:
+	case dltLinuxSLL2, dltLinuxSLL2Alt:
 		if len(data) < 20 {
 			return nil, 0, false
 		}
