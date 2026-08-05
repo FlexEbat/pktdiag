@@ -26,6 +26,9 @@ const usage = `pktdiag: диагностика сети через захват 
   pktdiag doctor
   pktdiag capture --iface eth0 --filter "tcp port 443" --duration 30s
   pktdiag capture --iface eth0 --duration 15s --output ./out
+  pktdiag capture --interactive
+  pktdiag capture --max-size 500MB
+  pktdiag capture --open
   pktdiag capture --config pktdiag.yaml
   pktdiag report ./out/capture.pcapng --format html
   pktdiag analyze ./out/capture.pcapng

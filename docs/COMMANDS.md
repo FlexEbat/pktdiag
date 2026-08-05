@@ -56,6 +56,9 @@ pktdiag capture [flags]
   --ring N             enable ring buffer with N files (0 disables it)
   --ring-size MB       size per ring file in MB (default 100)
   --snaplen N          tcpdump snapshot length (0 means unlimited, -s0)
+  --max-size SIZE      stop a single file at this size, for example "500MB", "2GB" (mutually exclusive with --ring)
+  --open               open the capture in Wireshark when it finishes (needs a GUI environment)
+  --interactive        walk through interface, filter, and duration selection step by step, ignoring --iface/--filter/--duration
   --force              proceed even if doctor found blocking (✘) issues
   --config PATH         YAML config file (default ./pktdiag.yaml if present)
 ```
@@ -88,7 +91,27 @@ pktdiag capture --iface eth0 --duration 5m
 pktdiag capture --iface eth0 --filter "udp port 53" --duration 0
 pktdiag capture --ring 5 --ring-size 50 --duration 10m
 pktdiag capture --config prod.yaml --duration 10s
+pktdiag capture --interactive
+pktdiag capture --max-size 500MB
+pktdiag capture --open
 ```
+
+`--interactive` prompts for the interface, filter, and duration one at a
+time instead of reading `--iface`, `--filter`, and `--duration`. Every
+other flag (`--output`, `--format`, `--ring`, and so on) still applies
+normally alongside it.
+
+`--max-size` stops a single output file once it reaches the given size,
+without rotating into multiple files. It is mutually exclusive with
+`--ring`, which has its own per-file size limit through `--ring-size`.
+Sizes use decimal SI units (1MB = 1,000,000 bytes), matching tcpdump's
+own `-C` flag.
+
+`--open` launches `wireshark` on the finished capture and returns
+immediately, without waiting for the window to close. It needs
+`wireshark` installed and a GUI environment (`$DISPLAY` or
+`$WAYLAND_DISPLAY` set); pktdiag warns but does not fail the capture if
+either is missing.
 
 ## pktdiag report
 

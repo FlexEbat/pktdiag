@@ -56,6 +56,9 @@ pktdiag capture [флаги]
   --ring N                 включить кольцевой буфер: N файлов, 0 выключает его
   --ring-size MB            размер одного файла кольца в МБ (по умолчанию 100)
   --snaplen N                snapshot length tcpdump, 0 значит без ограничения (-s0)
+  --max-size РАЗМЕР            остановить один файл при достижении размера, например "500MB", "2GB" (взаимоисключает --ring)
+  --open                        открыть захват в Wireshark по завершении, нужно GUI-окружение
+  --interactive                  пошагово спросить интерфейс, фильтр и длительность, игнорируя --iface/--filter/--duration
   --force                     продолжить, даже если doctor нашёл блокирующие (✘) проблемы
   --config PATH                 YAML-конфиг, по умолчанию ./pktdiag.yaml, если существует
 ```
@@ -90,7 +93,26 @@ pktdiag capture --iface eth0 --duration 5m
 pktdiag capture --iface eth0 --filter "udp port 53" --duration 0
 pktdiag capture --ring 5 --ring-size 50 --duration 10m
 pktdiag capture --config prod.yaml --duration 10s
+pktdiag capture --interactive
+pktdiag capture --max-size 500MB
+pktdiag capture --open
 ```
+
+`--interactive` спрашивает интерфейс, фильтр и длительность по одному
+вместо чтения `--iface`, `--filter` и `--duration`. Остальные флаги
+(`--output`, `--format`, `--ring` и так далее) применяются как обычно
+вместе с ним.
+
+`--max-size` останавливает один выходной файл при достижении заданного
+размера, без ротации на несколько файлов. Взаимоисключает `--ring`, у
+которого свой лимит размера на файл через `--ring-size`. Размеры
+используют десятичные единицы СИ (1MB = 1 000 000 байт), как у самого
+флага `-C` в tcpdump.
+
+`--open` запускает `wireshark` на готовом захвате и сразу возвращает
+управление, не дожидаясь закрытия окна. Нужен установленный `wireshark`
+и GUI-окружение (переменная `$DISPLAY` или `$WAYLAND_DISPLAY`); pktdiag
+предупреждает, но не проваливает захват, если чего-то из этого не хватает.
 
 ## pktdiag report
 

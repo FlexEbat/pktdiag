@@ -137,13 +137,6 @@ a plain `git push`.
   transitively, unreachable from this sandbox for the same reason
   gopacket needed GitHub Actions. `analyze`, `diagnose`, `timeline`, and
   `inspect` cover the same ground as plain-text output instead.
-- **No interactive capture wizard.** Flags and `pktdiag.yaml` replace the
-  step-by-step interface and filter prompts from the original design.
-- **No `--open` flag.** The original design auto-launched Wireshark after
-  capture; this build skips it by design, since it targets headless use.
-- **Single-file size limit uses ring buffer only.** `--ring-size` caps
-  each file in a ring buffer. Capping one file without rotating it is not
-  implemented.
 - **`metadata.json` combines what the original design split into
   separate files** (`routes.json`, `dns.json`, and so on). Same data, one
   file.
