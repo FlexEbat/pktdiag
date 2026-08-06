@@ -115,14 +115,15 @@ go vet ./...
 go test ./...
 ```
 
-pktdiag has one external Go dependency, `github.com/google/gopacket`,
-used for the packet-level detectors that display filters cannot express.
-The sandbox this project was developed in blocks `golang.org/x/*` at the
-network level, so builds involving that dependency run on GitHub Actions
-instead (`.github/workflows/ci.yml`), which has normal internet access.
-The workflow regenerates `go.mod`/`go.sum` with `go mod tidy` and commits
-them back, since a correct `go.sum` also needs that same network access
-to produce.
+pktdiag depends on `github.com/google/gopacket` for packet-level
+detectors that display filters cannot express, `github.com/spf13/cobra`
+for command routing, and `github.com/spf13/viper` for reading
+`pktdiag.yaml`. The sandbox this project was developed in blocks
+`golang.org/x/*` at the network level, so builds involving these
+dependencies run on GitHub Actions instead (`.github/workflows/ci.yml`),
+which has normal internet access. The workflow regenerates
+`go.mod`/`go.sum` with `go mod tidy` and commits them back, since a
+correct `go.sum` also needs that same network access to produce.
 
 If a build or test fails, the workflow commits the failure log to
 `.ci/last-failure.log` and removes it once the build is green again.

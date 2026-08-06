@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/viper"
+
 	"pktdiag/internal/analyze"
 	"pktdiag/internal/archive"
 	"pktdiag/internal/capture"
 	"pktdiag/internal/doctorx"
 	"pktdiag/internal/report"
 	"pktdiag/internal/sysinfo"
-	"pktdiag/internal/yamlcfg"
 )
 
 func runCapture(args []string) error {
@@ -26,29 +27,51 @@ func runCapture(args []string) error {
 	// дефолтами. Явные флаги командной строки переопределяют их
 	// (см. pktdiag.example.yaml).
 	cfgPath := extractConfigPath(args)
-	var cfg yamlcfg.Config
+	v := viper.New()
 	if cfgPath != "" {
-		loaded, err := yamlcfg.Load(cfgPath)
-		if err != nil {
+		v.SetConfigFile(cfgPath)
+		if err := v.ReadInConfig(); err != nil {
 			return fmt.Errorf("не удалось прочитать конфиг %s: %w", cfgPath, err)
 		}
-		cfg = loaded
 		fmt.Printf("Конфиг: %s\n", cfgPath)
+	}
+
+	// Viper.GetString/GetBool/GetInt возвращают нулевое значение типа для
+	// отсутствующего ключа, а не переданный по месту вызова дефолт, как
+	// было у yamlcfg.Config.Get. IsSet отличает "ключа нет" от "ключ
+	// явно выставлен в нулевое значение" (например, capture.ring: 0).
+	getString := func(key, def string) string {
+		if v.IsSet(key) {
+			return v.GetString(key)
+		}
+		return def
+	}
+	getInt := func(key string, def int) int {
+		if v.IsSet(key) {
+			return v.GetInt(key)
+		}
+		return def
+	}
+	getBool := func(key string, def bool) bool {
+		if v.IsSet(key) {
+			return v.GetBool(key)
+		}
+		return def
 	}
 
 	fs := flag.NewFlagSet("capture", flag.ContinueOnError)
 	_ = fs.String("config", "", "путь к YAML-конфигу, по умолчанию ./pktdiag.yaml, если существует")
-	iface := fs.String("iface", cfg.Get("capture", "iface", ""), "сетевой интерфейс, по умолчанию автовыбор без lo")
-	filter := fs.String("filter", cfg.Get("capture", "filter", ""), `BPF-фильтр tcpdump, например "tcp port 443"`)
-	duration := fs.String("duration", cfg.Get("capture", "duration", "30s"), `длительность захвата, например "30s", "5m". "0" значит до Ctrl+C`)
-	output := fs.String("output", cfg.Get("capture", "output", ""), "каталог для результатов, по умолчанию ./pktdiag-capture-<timestamp>")
-	format := fs.String("format", cfg.Get("report", "format", "html,json"), "форматы отчёта через запятую: html,json,md,pdf")
-	noArchive := fs.Bool("no-archive", !cfg.GetBool("report", "archive", true), "не собирать финальный tar.zst архив")
-	ring := fs.Int("ring", cfg.GetInt("capture", "ring", 0), "включить кольцевой буфер: количество файлов, 0 выключает")
-	ringSize := fs.Int("ring-size", cfg.GetInt("capture", "ring_size", 100), "размер одного файла кольцевого буфера, МБ")
-	snaplen := fs.Int("snaplen", cfg.GetInt("capture", "snaplen", 0), "snapshot length tcpdump, 0 значит без ограничения (-s0)")
-	maxSize := fs.String("max-size", cfg.Get("capture", "max_size", ""), `остановить захват в один файл по размеру, например "500MB", "2GB" (UC-03, без ring buffer)`)
-	open := fs.Bool("open", cfg.GetBool("capture", "open", false), "открыть pcap в Wireshark после захвата, требует GUI-окружение")
+	iface := fs.String("iface", getString("capture.iface", ""), "сетевой интерфейс, по умолчанию автовыбор без lo")
+	filter := fs.String("filter", getString("capture.filter", ""), `BPF-фильтр tcpdump, например "tcp port 443"`)
+	duration := fs.String("duration", getString("capture.duration", "30s"), `длительность захвата, например "30s", "5m". "0" значит до Ctrl+C`)
+	output := fs.String("output", getString("capture.output", ""), "каталог для результатов, по умолчанию ./pktdiag-capture-<timestamp>")
+	format := fs.String("format", getString("report.format", "html,json"), "форматы отчёта через запятую: html,json,md,pdf")
+	noArchive := fs.Bool("no-archive", !getBool("report.archive", true), "не собирать финальный tar.zst архив")
+	ring := fs.Int("ring", getInt("capture.ring", 0), "включить кольцевой буфер: количество файлов, 0 выключает")
+	ringSize := fs.Int("ring-size", getInt("capture.ring_size", 100), "размер одного файла кольцевого буфера, МБ")
+	snaplen := fs.Int("snaplen", getInt("capture.snaplen", 0), "snapshot length tcpdump, 0 значит без ограничения (-s0)")
+	maxSize := fs.String("max-size", getString("capture.max_size", ""), `остановить захват в один файл по размеру, например "500MB", "2GB" (UC-03, без ring buffer)`)
+	open := fs.Bool("open", getBool("capture.open", false), "открыть pcap в Wireshark после захвата, требует GUI-окружение")
 	interactive := fs.Bool("interactive", false, "пошаговый мастер выбора интерфейса, фильтра и длительности вместо флагов")
 	force := fs.Bool("force", false, "продолжить, даже если doctor нашёл проблемы (✘)")
 	if err := fs.Parse(reorderArgsForFlags(fs, args)); err != nil {
