@@ -211,6 +211,16 @@ dns), for quick checks or scripting.
 pktdiag health ./capture.pcapng
 ```
 
+## pktdiag tui
+
+Opens an interactive terminal viewer for one report: tabs for Overview,
+TCP, DNS, and Anomalies. Switch tabs with the arrow keys, Tab, or number
+keys 1 through 4. Quit with `q`, `Esc`, or `Ctrl+C`.
+
+```bash
+pktdiag tui ./capture.pcapng
+```
+
 ## Report formats & schema
 
 Every `report.json` follows this shape (trimmed for brevity, see

@@ -24,6 +24,7 @@ const usage = `pktdiag: диагностика сети через захват 
   inspect <файл>         Быстрый чек-лист TCP/DNS/TLS (MSS, Window Scale, Alerts, ...)
   compare <до> <после>   Сравнить два захвата (RTT/DNS/drops/retransmission/score)
   health <файл>          Показать только Health Score
+  tui <файл>             Интерактивный просмотр отчёта (вкладки Overview/TCP/DNS/Anomalies)
   version                Показать версию
 
 Примеры:
@@ -40,6 +41,7 @@ const usage = `pktdiag: диагностика сети через захват 
   pktdiag timeline ./out/capture.pcapng
   pktdiag inspect ./out/capture.pcapng
   pktdiag compare ./before.tar.zst ./after.tar.zst
+  pktdiag tui ./out/capture.pcapng
 `
 
 // rootCmd маршрутизирует подкоманды через Cobra, но не через её парсер
@@ -89,6 +91,7 @@ func init() {
 		newLeafCmd("inspect", "Быстрый чек-лист TCP/DNS/TLS", runInspect),
 		newLeafCmd("compare", "Сравнить два захвата", runCompare),
 		newLeafCmd("health", "Показать только Health Score", runHealth),
+		newLeafCmd("tui", "Интерактивный просмотр отчёта (Bubble Tea)", runTUI),
 		&cobra.Command{
 			Use:   "version",
 			Short: "Показать версию",

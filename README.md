@@ -70,6 +70,7 @@ reproduces the same picture without a second capture.
 | `inspect` | Prints a pass/fail checklist |
 | `compare` | Diffs two captures |
 | `health` | Prints only the Health Score |
+| `tui` | Opens an interactive terminal viewer for one report |
 
 Full flags and examples for every command: [docs/COMMANDS.md](docs/COMMANDS.md).
 
@@ -133,11 +134,14 @@ a plain `git push`.
 
 ## Known limitations
 
-- **No interactive TUI.** The original design called for a Bubble Tea
-  interface. Bubble Tea, Cobra, and Viper all pull in `golang.org/x/*`
-  transitively, unreachable from this sandbox for the same reason
-  gopacket needed GitHub Actions. `analyze`, `diagnose`, `timeline`, and
-  `inspect` cover the same ground as plain-text output instead.
+- **TUI interactivity is unverified.** `pktdiag tui` exists and builds
+  on GitHub Actions, same as gopacket, Cobra, and Viper before it. What
+  neither this sandbox nor a headless CI runner can do is provide a
+  pseudo-terminal to actually drive the interactive loop, so the only
+  automated checks are that `View()` renders every tab without panicking
+  on real report data and that `Update()` switches tabs correctly
+  (`internal/tui/tui_test.go`). Whether the rendered output looks right
+  in a real terminal has not been checked by a human yet.
 - **`metadata.json` combines what the original design split into
   separate files** (`routes.json`, `dns.json`, and so on). Same data, one
   file.
