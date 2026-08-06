@@ -132,23 +132,6 @@ GitHub's own log storage sits behind a domain this sandbox cannot reach
 either, so the log travels through the one channel that already works:
 a plain `git push`.
 
-## Known limitations
-
-- **TUI interactivity is unverified.** `pktdiag tui` exists and builds
-  on GitHub Actions, same as gopacket, Cobra, and Viper before it. What
-  neither this sandbox nor a headless CI runner can do is provide a
-  pseudo-terminal to actually drive the interactive loop, so the only
-  automated checks are that `View()` renders every tab without panicking
-  on real report data and that `Update()` switches tabs correctly
-  (`internal/tui/tui_test.go`). Whether the rendered output looks right
-  in a real terminal has not been checked by a human yet.
-- **`metadata.json` combines what the original design split into
-  separate files** (`routes.json`, `dns.json`, and so on). Same data, one
-  file.
-- **Linux only.** `internal/sysinfo` reads `/proc` and `/sys` directly.
-  `iptables`, `nftables`, `conntrack`, and `sysctl` are Linux concepts
-  anyway.
-
 ## License
 
 [LICENSE](LICENSE)
