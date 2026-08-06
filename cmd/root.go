@@ -2,7 +2,11 @@ package cmd
 
 import (
 	"fmt"
+
+	"github.com/spf13/cobra"
 )
+
+const version = "0.1.0-mvp"
 
 const usage = `pktdiag: диагностика сети через захват и анализ пакетов
 
@@ -20,13 +24,16 @@ const usage = `pktdiag: диагностика сети через захват 
   inspect <файл>         Быстрый чек-лист TCP/DNS/TLS (MSS, Window Scale, Alerts, ...)
   compare <до> <после>   Сравнить два захвата (RTT/DNS/drops/retransmission/score)
   health <файл>          Показать только Health Score
+  tui <файл>             Интерактивный просмотр отчёта (вкладки Overview/TCP/DNS/Anomalies)
   version                Показать версию
 
 Примеры:
   pktdiag doctor
   pktdiag capture --iface eth0 --filter "tcp port 443" --duration 30s
   pktdiag capture --iface eth0 --duration 15s --output ./out
-  pktdiag capture --config pktdiag.yaml
+  pktdiag capture --interactive
+  pktdiag capture --max-size 500MB
+  pktdiag capture --open
   pktdiag report ./out/capture.pcapng --format html
   pktdiag analyze ./out/capture.pcapng
   pktdiag explain retransmission
@@ -34,46 +41,70 @@ const usage = `pktdiag: диагностика сети через захват 
   pktdiag timeline ./out/capture.pcapng
   pktdiag inspect ./out/capture.pcapng
   pktdiag compare ./before.tar.zst ./after.tar.zst
+  pktdiag tui ./out/capture.pcapng
 `
 
-const version = "0.1.0-mvp"
+// rootCmd маршрутизирует подкоманды через Cobra, но не через её парсер
+// флагов: каждая подкоманда помечена DisableFlagParsing и получает сырые
+// аргументы, которые дальше разбирает уже проверенный flag.FlagSet внутри
+// runXxx. Так Cobra даёт дерево команд, --help верхнего уровня и
+// автодополнение, не требуя переписывать разбор флагов в десяти файлах
+// заново.
+var rootCmd = &cobra.Command{
+	Use:           "pktdiag",
+	Short:         "Диагностика сети через захват и анализ пакетов",
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	Args:          cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Print(usage)
+	},
+}
 
-// Execute разбирает первый аргумент как имя команды и делегирует её обработчику.
+func passthrough(run func(args []string) error) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		return run(args)
+	}
+}
+
+func newLeafCmd(use, short string, run func(args []string) error) *cobra.Command {
+	return &cobra.Command{
+		Use:                use,
+		Short:              short,
+		DisableFlagParsing: true,
+		RunE:               passthrough(run),
+	}
+}
+
+func init() {
+	rootCmd.AddCommand(
+		newLeafCmd("doctor", "Проверить окружение (tcpdump, tshark, права, диск)", runDoctor),
+		newLeafCmd("capture", "Захватить трафик, собрать метаданные, построить отчёт и архив", runCapture),
+		newLeafCmd("collect", "Синоним capture", runCapture),
+		newLeafCmd("bundle", "Синоним capture", runCapture),
+		newLeafCmd("report", "Построить отчёт по существующему pcap/архиву", runReport),
+		newLeafCmd("analyze", "Показать человекочитаемый обзор существующего pcap/архива", runAnalyze),
+		newLeafCmd("open", "Синоним analyze", runAnalyze),
+		newLeafCmd("explain", "Объяснить сетевой термин/метрику", runExplain),
+		newLeafCmd("diagnose", "Автоматический диагноз: вероятная причина и уверенность", runDiagnose),
+		newLeafCmd("timeline", "Хронология аномалий", runTimeline),
+		newLeafCmd("inspect", "Быстрый чек-лист TCP/DNS/TLS", runInspect),
+		newLeafCmd("compare", "Сравнить два захвата", runCompare),
+		newLeafCmd("health", "Показать только Health Score", runHealth),
+		newLeafCmd("tui", "Интерактивный просмотр отчёта (Bubble Tea)", runTUI),
+		&cobra.Command{
+			Use:   "version",
+			Short: "Показать версию",
+			RunE: func(cmd *cobra.Command, args []string) error {
+				fmt.Println("pktdiag", version)
+				return nil
+			},
+		},
+	)
+}
+
+// Execute разбирает args и запускает соответствующую подкоманду.
 func Execute(args []string) error {
-	if len(args) == 0 {
-		fmt.Print(usage)
-		return nil
-	}
-
-	switch args[0] {
-	case "-h", "--help", "help":
-		fmt.Print(usage)
-		return nil
-	case "version", "-v", "--version":
-		fmt.Println("pktdiag", version)
-		return nil
-	case "doctor":
-		return runDoctor(args[1:])
-	case "capture", "collect", "bundle":
-		return runCapture(args[1:])
-	case "report":
-		return runReport(args[1:])
-	case "analyze", "open":
-		return runAnalyze(args[1:])
-	case "explain":
-		return runExplain(args[1:])
-	case "diagnose":
-		return runDiagnose(args[1:])
-	case "timeline":
-		return runTimeline(args[1:])
-	case "inspect":
-		return runInspect(args[1:])
-	case "compare":
-		return runCompare(args[1:])
-	case "health":
-		return runHealth(args[1:])
-	default:
-		fmt.Print(usage)
-		return fmt.Errorf("неизвестная команда: %s", args[0])
-	}
+	rootCmd.SetArgs(args)
+	return rootCmd.Execute()
 }

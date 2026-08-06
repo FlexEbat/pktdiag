@@ -18,12 +18,13 @@ import (
 
 // Options хранит параметры одного захвата.
 type Options struct {
-	Interface  string        // например "eth0" или "any"
-	Filter     string        // BPF-фильтр, например "tcp port 443"; может быть пустым
-	Duration   time.Duration // 0 значит: захват идёт, пока не придёт SIGINT снаружи
-	OutputPcap string        // путь к файлу для записи (.pcapng/.pcap)
-	Ring       RingOptions   // кольцевой буфер, опционально
-	Snaplen    int           // 0 значит без ограничения (tcpdump -s0)
+	Interface    string        // например "eth0" или "any"
+	Filter       string        // BPF-фильтр, например "tcp port 443"; может быть пустым
+	Duration     time.Duration // 0 значит: захват идёт, пока не придёт SIGINT снаружи
+	OutputPcap   string        // путь к файлу для записи (.pcapng/.pcap)
+	Ring         RingOptions   // кольцевой буфер, опционально
+	Snaplen      int           // 0 значит без ограничения (tcpdump -s0)
+	MaxSizeBytes int64         // 0 значит без ограничения; останавливает захват в один файл без ротации (UC-03)
 }
 
 // RingOptions хранит параметры кольцевого буфера (UC-04 из ТЗ).
@@ -154,6 +155,32 @@ func Run(opts Options) (Result, error) {
 	// Если Duration == 0, ожидаем, что пользователь сам пришлёт SIGINT
 	// (Ctrl+C в терминале): tcpdump в той же группе процессов получит
 	// сигнал напрямую от терминала.
+
+	if opts.MaxSizeBytes > 0 && !opts.Ring.Enabled {
+		// Ring buffer сам ограничивает размер каждого файла через -C,
+		// это отдельный от MaxSizeBytes механизм (см. UC-04 в ТЗ).
+		// MaxSizeBytes закрывает UC-03: один файл, без ротации, с жёстким
+		// потолком по размеру. tcpdump не умеет останавливаться по размеру
+		// без -C/-W, поэтому опрашиваем размер файла и сами шлём SIGINT.
+		stopMonitor := make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(500 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-stopMonitor:
+					return
+				case <-ticker.C:
+					info, err := os.Stat(opts.OutputPcap)
+					if err == nil && info.Size() >= opts.MaxSizeBytes {
+						_ = cmd.Process.Signal(syscall.SIGINT)
+						return
+					}
+				}
+			}
+		}()
+		defer close(stopMonitor)
+	}
 
 	waitErr := cmd.Wait()
 	<-done
